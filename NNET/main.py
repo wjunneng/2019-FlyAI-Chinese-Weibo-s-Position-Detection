@@ -13,16 +13,6 @@ from NNET.net import Net
 from NNET.path import MODEL_PATH
 
 '''
-样例代码仅供参考学习，可以自己修改实现逻辑。
-Tensorflow模版项目下载： https://www.flyai.com/python/tensorflow_template.zip
-PyTorch模版项目下载： https://www.flyai.com/python/pytorch_template.zip
-Keras模版项目下载： https://www.flyai.com/python/keras_template.zip
-第一次使用请看项目中的：第一次使用请读我.html文件
-常见问题请访问：https://www.flyai.com/question
-意见和问题反馈有红包哦！添加客服微信：flyaixzs
-'''
-
-'''
 项目的超参
 '''
 parser = argparse.ArgumentParser()
