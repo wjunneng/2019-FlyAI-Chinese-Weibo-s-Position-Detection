@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*
-'''
+"""
 实现模型的调用
-'''
+"""
 from flyai.dataset import Dataset
-from model import Model
-import pandas as pd
-
+from NNET.model import Model
 
 data = Dataset()
 model = Model(data)

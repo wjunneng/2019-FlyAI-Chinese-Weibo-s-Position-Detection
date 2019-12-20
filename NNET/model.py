@@ -4,7 +4,7 @@ import os
 import torch
 from flyai.model.base import Base
 
-from path import MODEL_PATH
+from NNET.path import MODEL_PATH
 
 __import__('net', fromlist=["Net"])
 
