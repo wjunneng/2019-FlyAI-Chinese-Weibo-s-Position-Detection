@@ -1,7 +1,7 @@
 import torch
-from yutils.vec_utils import get_mask_matrix, get_padding, sentences_to_idx
-from yutils.file_utils import read_file2list, read_file2lol, pickle_to_data
-from yutils.str_utils import seg_sentences
+from vec_utils import get_mask_matrix, get_padding, sentences_to_idx
+from file_utils import read_file2list, read_file2lol, pickle_to_data
+from str_utils import seg_sentences
 
 
 #############################################################

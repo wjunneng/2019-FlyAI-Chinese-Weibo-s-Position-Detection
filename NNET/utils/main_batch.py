@@ -1,8 +1,9 @@
+# -*- coding:utf-8 -*-
+
 import argparse
 import os
 import sys
 import time
-from progress.bar import Bar
 
 import numpy
 import torch
@@ -10,22 +11,23 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 
-from room import RoomConditional
+from progress.bar import Bar
+from NNET.net import Net
 
 sys.path.append('../')
-from yutils.file_utils import pickle_to_data
-from yutils.model_utils import gen_model_path_by_args, load_torch_model, tensors_to_numpy, gen_used_text
-from yutils.vec_utils import get_batch
-from yutils.eval_utils import count_label, cal_prf, cal_acc
+from file_utils import pickle_to_data
+from model_utils import gen_model_path_by_args, load_torch_model, tensors_to_numpy, gen_used_text
+from vec_utils import get_batch
+from eval_utils import count_label, cal_prf, cal_acc
 
-parser = argparse.ArgumentParser(description="PyTorch RoomConditonal for Stance Project")
+parser = argparse.ArgumentParser(description="PyTorch Net for Stance Project")
 ''' load data and save model'''
 parser.add_argument("--input", type=str, default="3k10k",
                     help="location of dataset")
 parser.add_argument("--save", type=str, default="__",
                     help="path to save the model")
 ''' model parameters '''
-parser.add_argument("--model", type=str, default="RoomConditional",
+parser.add_argument("--model", type=str, default="Net",
                     help="type of model to use for Stance Project")
 parser.add_argument("--embtype", type=str, default="baike",
                     help="type of word embeddings")
@@ -43,13 +45,12 @@ parser.add_argument("--batch_size", type=int, default=8,
                     help="batch size")
 parser.add_argument("--dropout", type=float, default=0.5,
                     help="dropout rate")
-parser.add_argument("--ans_len", type=int, default=45,
+parser.add_argument("--ans_len", type=int, default=50,
                     help="max time step of answer sequence")
 parser.add_argument("--ask_len", type=int, default=25,
                     help="max time step of question sequence")
 parser.add_argument("--nhops", type=int, default=3,
                     help="number of attention hops for RoomConditional models")
-
 
 ''' test purpose'''
 parser.add_argument("--seed", type=int, default=123456,
@@ -230,7 +231,7 @@ def test(model, dataset, log_result=False, data_part="test"):
             labels
         
     '''
-    test_set = pickle_to_data("../data/vec/%s/features_%s_%s.pkl" % (args.input, args.embtype, data_part))
+    test_set = pickle_to_data("../data/output/features_%s_%s.pkl" % (args.embtype, data_part))
 
     test_len = len(test_set)
     # always
@@ -306,7 +307,7 @@ def train(model, dataset):
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=5e-5)
     criterion = nn.CrossEntropyLoss()
 
-    training_set = pickle_to_data("../data/vec/%s/features_%s_%s.pkl" % (args.input, args.embtype, "training"))
+    training_set = pickle_to_data("../data/output/features_%s_%s.pkl" % (args.embtype, "training"))
     best_f1_test, best_p_valid, best_f1_valid = -numpy.inf, -numpy.inf, -numpy.inf
     epoch_f1_test, epoch_f1_valid, epoch_f1_cur = 0, 0, 0
     cur_f1_test = -numpy.inf
@@ -337,14 +338,6 @@ def train(model, dataset):
                 print("  ----New best F1 on Valid is %f" % f1_score)
                 epoch_f1_valid = training_set.epochs_completed
 
-                f1_test, _ = test(model, dataset, data_part="test")
-                cur_f1_test = f1_test
-                print("  ----Old best F1 on Test is %f" % best_f1_test)
-                if f1_test > best_f1_test:
-                    best_f1_test = f1_test
-                    print("  ----New best F1 on Test is %f" % f1_test)
-                    epoch_f1_test = training_set.epochs_completed
-
             print("--------------\nEpoch %d begins!" % (training_set.epochs_completed + 1))
 
     bar.finish()
@@ -356,7 +349,7 @@ def create_model(emb_fn):
     emb = torch.from_numpy(emb_np)
 
     models = {
-        "RoomConditional": RoomConditional
+        "Net": Net
     }
     model = models[args.model](embeddings=emb,
                                input_dim=emb.size(1),
@@ -365,7 +358,7 @@ def create_model(emb_fn):
                                output_dim=args.nclass,
                                max_step=[args.ans_len, args.ask_len],
                                dropout=args.dropout)
-    if args.model in ["RoomConditional", ]:
+    if args.model in ["Net", ]:
         model.nhops = args.nhops
     return model
 
@@ -382,15 +375,15 @@ def load_dataset(dataset_fn, word2idx_fn):
 def main():
     # 1. define location to save the model and mkdir if not exists
     if args.save == "__":  # RoomConditional_100_batch8_45_25_3k10k20k_bias
-        _, args.save = gen_model_path_by_args("../saved_model/stance/",
+        _, args.save = gen_model_path_by_args("../data/model/",
                                               [args.model, args.nhid, args.ans_len, args.ask_len,
                                                args.batch_size, args.input, args.nhops])
     if not os.path.exists(args.save):
         os.mkdir(args.save)
 
     # 2. load dataset
-    dataset_fn = "../data/vec/%s/features_%s.pkl" % (args.input, args.embtype)
-    word2idx_fn = "../data/vec/%s/word2idx_%s.pkl" % (args.input, args.embtype)
+    dataset_fn = "../data/output/features_%s.pkl" % (args.embtype)
+    word2idx_fn = "../data/output/word2idx_%s.pkl" % (args.embtype)
     dataset = load_dataset(dataset_fn, word2idx_fn)
 
     # 3. test, proceed, train
@@ -410,7 +403,7 @@ def main():
                 with open(args.save + "/model.pt", "rb") as saved_model:
                     model = torch.load(saved_model)
         else:
-            emb_fn = "../data/vec/%s/embeddings_%s.pkl" % (args.input, args.embtype)
+            emb_fn = "../data/output/embeddings_%s.pkl" % (args.embtype)
             model = create_model(emb_fn)
 
         if torch.cuda.is_available():
@@ -425,4 +418,3 @@ def main():
 if __name__ == "__main__":
     print("------------------------------")
     main()
-

@@ -1,6 +1,8 @@
 import numpy as np
-from yutils.file_utils import read_file2list, data_to_pickle, pickle_to_data
-from yutils.str_utils import decide_run_place
+from file_utils import read_file2list, data_to_pickle, pickle_to_data
+from str_utils import decide_run_place
+
+
 # np.random.seed(123456)
 
 #############################################################
@@ -85,6 +87,8 @@ def read_emb(filename, emb_type=2, stat_lines=0):
 
     :return:
     """
+    embeddings = None
+    words = None
     type1 = [1, 2, "glove", "baike", "weibo", "zhwiki"]
     if emb_type in type1:
         embeddings, words = read_emb_idx(filename, stat_lines)
@@ -92,22 +96,6 @@ def read_emb(filename, emb_type=2, stat_lines=0):
     print("Finish loading embedding %s * * * * * * * * * * * *" % filename)
 
     vocab = create_vocab(embeddings, words)
-    return vocab
-
-
-def read_predefined_vocab(emb="glove", emb_type=2, stat_lines=0):
-    """
-
-    :param emb:
-    :param emb_type:
-    :param stat_lines:
-    :return:
-    """
-    # embedding file location
-    run_place = decide_run_place()
-    emb_place = {"baike": run_place + "nlp_res/embeddings/baike/baike-50.vec.txt",
-                 "weibo": run_place + "nlp_res/embeddings/weibo/weibo-50.vec.txt", }
-    vocab = read_emb(emb_place[emb], emb_type=emb_type, stat_lines=stat_lines)
 
     return vocab
 
@@ -244,7 +232,6 @@ def label_to_idx(labels, label2idx):
     print("-------------begin to make yLabels-------------")
     label_indexes = []  # to avoid ne
     for label in labels:
-        label = int(label)
         label_indexes.append(label2idx[label])
 
     label_indexes = np.asarray(label_indexes, dtype=np.int64).reshape(len(labels))
@@ -311,7 +298,7 @@ def get_padding(sentences, max_len):
         num_words = len(sentence)  # before truncation
 
         if max_len == 60 and num_words > 60:
-            sentence = sentence[:45] + sentence[num_words-15:]
+            sentence = sentence[:45] + sentence[num_words - 15:]
         sentence = sentence[:max_len]
 
         num_words = len(sentence)  # after truncation
@@ -356,6 +343,7 @@ class YDataset(object):
         1) don't support discret features like pos tag at present
 
     """
+
     def __init__(self, list_of_features, labels, to_pad=True, max_lens=[6, 25]):
         """
         All sentences are indexes of words!
@@ -470,7 +458,6 @@ class YDataset(object):
 
 
 def get_batch(batch_size, total_num, features):
-
     """
 
     :param batch_size:
@@ -490,11 +477,11 @@ def get_batch(batch_size, total_num, features):
     num_batch = int(total_num / batch_size)
     left = total_num - batch_size * num_batch
     for idx in range(num_batch):
-        feature_batch = [feature[idx*batch_size: (idx+1)*batch_size]
+        feature_batch = [feature[idx * batch_size: (idx + 1) * batch_size]
                          for feature in features]
         yield feature_batch
     if left > 0:
-        feature_batch = [feature[num_batch*batch_size:]
+        feature_batch = [feature[num_batch * batch_size:]
                          for feature in features]
         yield feature_batch
 

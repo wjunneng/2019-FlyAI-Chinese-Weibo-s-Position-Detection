@@ -1,7 +1,9 @@
-from yutils.str_utils import str_to_list, list_to_str
+# -*- coding:utf-8 -*-
 import jieba
 import pandas as pd
 from NNET import args
+
+from str_utils import str_to_list, list_to_str
 
 
 #############################################################

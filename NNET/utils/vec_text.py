@@ -1,6 +1,6 @@
 import numpy as np
-from yutils.file_utils import data_to_pickle
-from yutils.vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
+from file_utils import data_to_pickle
+from vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
 """
 Codes for scenarios where feature  are only text input
 Especially useful for
@@ -96,7 +96,7 @@ def make_datasets(vocab, raw_data, label2idx, big_voc=False, feat_names=None):
 
     if not feat_names:
         feat_names = ["xIndexes", "yLabels"]
-    names = ["training", "validation", "test"]
+    names = ["training", "validation"]
     for name in names:
         # sentences, labels = raw_data[i]
         datasets[name] = make_data(raw_data[name], vocab, word2idx, embeddings, datasets["label2idx"], big_voc,
@@ -122,7 +122,7 @@ def preload_tvt(datasets, max_lens, out_dir, emb="glove", feat_names=None):
         vocab = {"embeddings": embeddings, "word2idx": word2idx, "idx2word": idx2word}
     """
 
-    for part in ["training", "validation", "test"]:
+    for part in ["training", "validation"]:
         tvt_set = datasets[part]
         tvt = load_tvt(tvt_set, max_lens, feat_names)
         data_to_pickle(tvt, "%s/features_%s_%s.pkl" % (out_dir, emb, part))
