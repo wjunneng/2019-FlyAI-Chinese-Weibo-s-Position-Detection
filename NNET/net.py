@@ -22,9 +22,6 @@ Model: Read the question and answer for many times to get more distilled answer
 
 1. Use an RNN to control the reading process!
 2. 
-
-
-
 """
 
 
@@ -92,7 +89,9 @@ class Net(nn.Module):
         :param mask_matrix: mask matrix for memory block (batch_size, max_len)
         :return:
         """
-        '''   Mask Att weights of padding 0s with -float('inf')  '''
+        """   
+            Mask Att weights of padding 0s with -float('inf')  
+        """
         aspect = torch.unsqueeze(aspect, dim=2)
         # (batch_size, max_len, 2*hidden_dim) * (batch_size, 2*hidden_dim) --> (batch_size, max_len)
         att_weights = torch.bmm(memory, aspect)
@@ -121,7 +120,7 @@ class Net(nn.Module):
         :return:
         """
 
-        ''' Embedding Layer | Padding | Sequence_length 25/45'''
+        """ Embedding Layer | Padding | Sequence_length 25/45"""
         ask_batch_index, ask_lengths, ask_mask_matrix = questions
         ask_batch = self.emb(ask_batch_index)
         ans_batch, ans_lengths, ans_mask_matrix = answers
@@ -129,29 +128,36 @@ class Net(nn.Module):
 
         batch_size = len(ask_batch)
 
-        ''' Bi-GRU Layer 
-                Batch&Pad: torch.nn.utils.rnn.pad_packed_sequence
-        '''
+        """ Bi-GRU Layer  
+            Batch&Pad: torch.nn.utils.rnn.pad_packed_sequence
+        """
         # _outs: (batch_size, seq_len, features)
         ask_outs, _ = self.ask_rnn(ask_batch.view(batch_size, -1, self.input_dim))
         ans_outs, _ = self.ans_rnn(ans_batch.view(batch_size, -1, self.input_dim))
 
         # Batch_first only change viewpoint, may not be contiguous
-        ans_rnn = ans_outs.contiguous().view(batch_size, -1, 2 * self.hidden_dim)  # (batch, ans_len, 2*hid)
-        ask_rnn = ask_outs.contiguous().view(batch_size, -1, 2 * self.hidden_dim)  # (batch, ask_len, 2*hid)
+        # (batch, ans_len, 2*hid)
+        ans_rnn = ans_outs.contiguous().view(batch_size, -1, 2 * self.hidden_dim)
+        # (batch, ask_len, 2*hid)
+        ask_rnn = ask_outs.contiguous().view(batch_size, -1, 2 * self.hidden_dim)
 
-        ''' Individual ATT Layer '''
+        """ Individual ATT Layer """
         ans_mask = ans_mask_matrix.view(batch_size, -1, 1).float()
         ask_mask = ask_mask_matrix.view(batch_size, -1, 1).float()
 
-        ans_mask = ans_mask.expand_as(ans_rnn)  # (batch, ans_len, 2*hid)
-        ask_mask = ask_mask.expand_as(ask_rnn)  # (batch, ask_len, 2*hid)
+        # (batch, ans_len, 2*hid)
+        ans_mask = ans_mask.expand_as(ans_rnn)
+        # (batch, ask_len, 2*hid)
+        ask_mask = ask_mask.expand_as(ask_rnn)
 
-        ans_rnn = ans_rnn * ans_mask  # (batch, ans_len, 2*hid)
-        ask_rnn = ask_rnn * ask_mask  # (batch, ask_len, 2*hid)
+        # (batch, ans_len, 2*hid)
+        ans_rnn = ans_rnn * ans_mask
+        # (batch, ask_len, 2*hid)
+        ask_rnn = ask_rnn * ask_mask
 
         # h_0 = Variable(torch.rand(batch_size, 2*self.hidden_dim)).cuda()
-        h_0 = Variable(torch.zeros(batch_size, 2 * self.hidden_dim))  # .cuda()
+        # .cuda()
+        h_0 = Variable(torch.zeros(batch_size, 2 * self.hidden_dim))
         h_t = h_0
         for step_t in range(self.nhops):
             # for step_t in range(3):
@@ -159,7 +165,8 @@ class Net(nn.Module):
             q_t = self.attention(h_t, ask_rnn, ask_mask_matrix)
             h_t = self.roo(q_t, h_t)
 
-            h_t = F.tanh(h_t)  # maybe useful
+            # maybe useful
+            h_t = F.tanh(h_t)
 
             # attend answer
             a_t = self.attention(h_t, ans_rnn, ans_mask_matrix)
@@ -169,7 +176,8 @@ class Net(nn.Module):
         out = self.output(representation)
         out_scores = F.softmax(out, dim=1)
 
-        key_index = Variable(torch.LongTensor([0] * batch_size))  # .cuda()
+        # .cuda()
+        key_index = Variable(torch.LongTensor([0] * batch_size))
 
         # print out_scores
         return out_scores, key_index.view(-1)

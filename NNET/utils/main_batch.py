@@ -19,52 +19,7 @@ from file_utils import pickle_to_data
 from model_utils import gen_model_path_by_args, load_torch_model, tensors_to_numpy, gen_used_text
 from vec_utils import get_batch
 from eval_utils import count_label, cal_prf, cal_acc
-
-parser = argparse.ArgumentParser(description="PyTorch Net for Stance Project")
-''' load data and save model'''
-parser.add_argument("--input", type=str, default="3k10k",
-                    help="location of dataset")
-parser.add_argument("--save", type=str, default="__",
-                    help="path to save the model")
-''' model parameters '''
-parser.add_argument("--model", type=str, default="Net",
-                    help="type of model to use for Stance Project")
-parser.add_argument("--embtype", type=str, default="baike",
-                    help="type of word embeddings")
-parser.add_argument("--nclass", type=int, default=3,
-                    help="number of classes to predict")
-parser.add_argument("--nhid", type=int, default=50,
-                    help="size of RNN hidden layer")
-parser.add_argument("--nlayers", type=int, default=1,
-                    help="number of layers of LSTM")
-parser.add_argument("--lr", type=float, default=1e-4,
-                    help="learning rate")
-parser.add_argument("--epochs", type=int, default=10,
-                    help="number of training epoch")
-parser.add_argument("--batch_size", type=int, default=8,
-                    help="batch size")
-parser.add_argument("--dropout", type=float, default=0.5,
-                    help="dropout rate")
-parser.add_argument("--ans_len", type=int, default=50,
-                    help="max time step of answer sequence")
-parser.add_argument("--ask_len", type=int, default=25,
-                    help="max time step of question sequence")
-parser.add_argument("--nhops", type=int, default=3,
-                    help="number of attention hops for RoomConditional models")
-
-''' test purpose'''
-parser.add_argument("--seed", type=int, default=123456,
-                    help="random seed for reproduction")
-parser.add_argument("--cuda", action="store_true",
-                    help="use CUDA")
-parser.add_argument("--is_test", action="store_true",
-                    help="flag for training model or only test")
-parser.add_argument("--verify", action="store_true",
-                    help="flag for testing correctness of program on 10 training records")
-parser.add_argument("--proceed", action="store_true",
-                    help="flag for continue training on current model")
-
-args = parser.parse_args()
+import args
 
 torch.manual_seed(args.seed)
 
@@ -106,8 +61,7 @@ def classify_batch(model, features, use_cuda=True, max_lens=(45, 25)):
     return outputs
 
 
-def classify_batches(batch_size, model, features,
-                     use_cuda=True, max_lens=(45, 25)):
+def classify_batches(batch_size, model, features, use_cuda=True, max_lens=(45, 25)):
     """
 
     :param batch_size:
@@ -118,7 +72,8 @@ def classify_batches(batch_size, model, features,
     :return:
     """
     total_num = len(features[0])
-    batches_to_classify = get_batch(batch_size, total_num, features=features)  # generator
+    # generator
+    batches_to_classify = get_batch(batch_size, total_num, features=features)
     y_pred = []
     max_indexes = []
     max_probs = []
@@ -132,6 +87,7 @@ def classify_batches(batch_size, model, features,
         y_pred.extend(pred_batch)
         max_indexes.extend(max_index_batch)
         max_probs.extend(max_prob_batch)
+
     return y_pred, max_indexes, max_probs
 
 
@@ -189,20 +145,17 @@ def log_prf_single(y_pred, y_true, model_name="RoomConditional", data_part="Test
         "f_score": f1
     }
 
-    return eval_result  # [accuracy, f1{Con/Pro}, macro_f1]
-
-
-def _gen_text(idx2word, questions, answers):
-    if idx2word:
-        questions = gen_used_text(idx2word=idx2word, text_idx=questions)
-        answers = gen_used_text(idx2word=idx2word, text_idx=answers)
-    return questions, answers
+    # [accuracy, f1{Con/Pro}, macro_f1]
+    return eval_result
 
 
 def log_text_single(questions, answers, y_pred, y_true, idx2word=None, max_indexes=None):
     total = len(answers)
-    # gen_used_text(<word2idx, texts, max_len>, <idx2word, text_idx>)
-    q_text, a_text = _gen_text(idx2word, questions, answers)
+    q_text = None
+    a_text = None
+    if idx2word:
+        q_text = gen_used_text(idx2word=idx2word, text_idx=questions)
+        a_text = gen_used_text(idx2word=idx2word, text_idx=answers)
 
     for idx in range(total):
         print("**** 问题: %s\n**** 回答: %s" % (q_text[idx], a_text[idx]))
@@ -369,6 +322,7 @@ def load_dataset(dataset_fn, word2idx_fn):
     idx2word = dict((v, k) for k, v in word2idx.items())
     dataset["word2idx"] = word2idx
     dataset["idx2word"] = idx2word
+
     return dataset
 
 
