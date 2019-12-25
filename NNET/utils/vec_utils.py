@@ -430,7 +430,7 @@ class YDataset(object):
         if self._index_in_epoch > self._num_examples:
             # Finished epoch
             self._epochs_completed += 1
-            '''  shuffle feature  and labels'''
+            """  shuffle feature  and labels"""
             self._shuffle(seed)
 
             start = 0
@@ -465,7 +465,7 @@ def get_batch(batch_size, total_num, features):
     :param features: list of input features need to be generate
     :return:
     """
-    '''
+    """
     pred_batch, max_index_batch = test_batch(args, model,
                                                      questions[batch * 1000:(batch + 1) * 1000],
                                                      questions_seqlen[batch * 1000:(batch + 1) * 1000],
@@ -473,7 +473,7 @@ def get_batch(batch_size, total_num, features):
                                                      answers[batch * 1000:(batch + 1) * 1000],
                                                      answers_seqlen[batch * 1000:(batch + 1) * 1000],
                                                      answers_mask[batch * 1000:(batch + 1) * 1000]
-    '''
+    """
     num_batch = int(total_num / batch_size)
     left = total_num - batch_size * num_batch
     for idx in range(num_batch):
@@ -486,7 +486,7 @@ def get_batch(batch_size, total_num, features):
         yield feature_batch
 
 
-if __name__ == "__main__":
-    print("------------This is for utility test--------------")
-    print(get_padding([[1, 2, 3, 1, 2, 3], [6, 7, 8], [2, 3, 4]], max_len=5))
-    print(get_mask_matrix([9, 2, 3], max_len=10))
+# if __name__ == "__main__":
+#     print("------------This is for utility test--------------")
+#     print(get_padding([[1, 2, 3, 1, 2, 3], [6, 7, 8], [2, 3, 4]], max_len=5))
+#     print(get_mask_matrix([9, 2, 3], max_len=10))

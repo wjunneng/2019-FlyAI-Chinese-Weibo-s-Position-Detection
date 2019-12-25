@@ -25,20 +25,20 @@ def cal_prf(pred, right, gold, formation=True):
     :param formation: whether format the float to 6 digits
     :return: prf for each label
     """
-    ''' Pred: [0, 2905, 0]  Right: [0, 2083, 0]  Gold: [370, 2083, 452] '''
+    """ Pred: [0, 2905, 0]  Right: [0, 2083, 0]  Gold: [370, 2083, 452] """
     num_label = len(pred)
     precisions = np.zeros(num_label)
     recalls = np.zeros(num_label)
     f_scores = np.zeros(num_label)
 
     for i in range(num_label):
-        ''' cal precision for each class: right / predict '''
+        """ cal precision for each class: right / predict """
         precisions[i] = 0 if pred[i] == 0 else 1.0 * right[i] / pred[i]
 
-        ''' cal recall for each class: right / gold '''
+        """ cal recall for each class: right / gold """
         recalls[i] = 0 if gold[i] == 0 else 1.0 * right[i] / gold[i]
 
-        ''' cal recall for each class: 2 pr / (p+r) '''
+        """ cal recall for each class: 2 pr / (p+r) """
         f_scores[i] = 0 if precisions[i] == 0 or recalls[i] == 0 \
             else 2.0 * (precisions[i] * recalls[i]) / (precisions[i] + recalls[i])
 
@@ -47,7 +47,7 @@ def cal_prf(pred, right, gold, formation=True):
             recalls[i] = recalls[i].__format__(".6f")
             f_scores[i] = f_scores[i].__format__(".6f")
 
-    ''' PRF for each label or PRF for all labels '''
+    """ PRF for each label or PRF for all labels """
     prf_result = dict()
 
     prf_result["p"] = precisions

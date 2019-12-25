@@ -46,7 +46,7 @@ def make_data(raw_data_i, vocab, word2idx, embeddings, label2idx, big_voc=False,
     """
     assert len(feat_names) == len(raw_data_i)
 
-    ''' raw data --> key in the data'''
+    """ raw data --> key in the data"""
     feats = raw_data_i[:-1]
     labels = raw_data_i[-1]
 

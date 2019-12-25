@@ -109,5 +109,5 @@ def processing():
     print(word2idx["_padding"], word2idx["_unk"])
 
 
-if __name__ == "__main__":
-    processing()
+# if __name__ == "__main__":
+#     processing()
