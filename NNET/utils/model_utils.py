@@ -1,3 +1,4 @@
+import os
 import time
 import torch
 import numpy as np
@@ -67,7 +68,7 @@ def load_test_data(feat_filenames, word2idx_filename, max_lens=(45, 25), seged=T
 
 def load_test_label(label_filename, label2idx=None):
     if label2idx is None:
-        label2idx = {"-1": 0, "0": 1, "1": 2}
+        label2idx = {"AGAINST": 0, "NONE": 1, "FAVOR": 2}
     labels = read_file2list(label_filename)
     test_labels = [label2idx[label] for label in labels]
     return test_labels
@@ -88,6 +89,9 @@ def gen_model_path_by_args(in_dir, model_params):
 
     model_params = [str(param) for param in model_params]
     model_path = "%s%s" % (in_dir, "_".join(model_params))
+
+    if not os.path.exists(model_path):
+        os.mkdir(model_path)
 
     return model_name, model_path
 
@@ -144,39 +148,6 @@ def load_torch_model(model_path, use_cuda=True):
 ###################
 #   Generate real text for comparison
 ###################
-def gen_used_text(word2idx=None, texts=None, max_len=None, idx2word=None, text_idx=None, choice="string"):
-    """
-    Usually for sentences of one model
-    Given original text, return the actually model-used text (with _unk, _pad)
-        if given text_idx --> restore shorter-texts from text_idx
-        else              --> get text_idx with word2idx and do reversal step
-
-    :param word2idx:
-    :param texts:
-    :param max_len:
-    :param idx2word:
-    :param text_idx:
-    :return:
-    """
-    # Not given text_idx: generate according to max_len and word2idx
-    if text_idx is None:
-        if (word2idx is None) or (texts is None) or (max_len is None):
-            print("Need more information to gen text_idx")
-        else:
-            text_idx = sentences_to_idx(texts, word2idx)
-            text_idx, _ = get_padding(text_idx, max_len=max_len)
-
-    if idx2word is None:
-        idx2word = dict((v, k) for k, v in word2idx.items())
-
-    # text has max_length and paddings/unks
-    if choice == "string":
-        shorter_texts = [" ".join([idx2word[idx] for idx in t]) for t in text_idx]
-    else:
-        shorter_texts = [[idx2word[idx] for idx in t] for t in text_idx]
-
-    return shorter_texts
-
 
 def classify_batch(model, features, use_cuda=True, max_lens=(45, 25)):
     """

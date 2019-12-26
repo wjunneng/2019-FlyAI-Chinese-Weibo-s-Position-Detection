@@ -1,9 +1,11 @@
 # -*- coding:utf-8 -*-
 import jieba
 import pandas as pd
-from NNET import args
+import pickle
+import os
 
-from str_utils import str_to_list, list_to_str
+from NNET import args
+from NNET.utils.str_utils import str_to_list, list_to_str
 
 
 #############################################################
@@ -51,22 +53,15 @@ def read_file2lol(filename):
 #   Serialization to pickle
 ###################
 def data_to_pickle(your_dict, out_file):
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
     with open(out_file, 'wb') as f:
         pickle.dump(your_dict, f)
 
 
 def pickle_to_data(in_file):
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
     with open(in_file, 'rb') as f:
         your_dict = pickle.load(f)
-        return your_dict
+
+    return your_dict
 
 
 ###################

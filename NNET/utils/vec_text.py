@@ -1,6 +1,6 @@
 import numpy as np
-from file_utils import data_to_pickle
-from vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
+from NNET.utils.file_utils import data_to_pickle
+from NNET.utils.vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
 """
 Codes for scenarios where feature  are only text input
 Especially useful for

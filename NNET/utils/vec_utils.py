@@ -1,6 +1,5 @@
 import numpy as np
-from file_utils import read_file2list, data_to_pickle, pickle_to_data
-from str_utils import decide_run_place
+from NNET.utils.file_utils import data_to_pickle, pickle_to_data
 
 
 # np.random.seed(123456)

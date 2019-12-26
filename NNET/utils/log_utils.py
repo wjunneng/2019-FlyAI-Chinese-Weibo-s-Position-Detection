@@ -1,5 +1,5 @@
 from NNET.utils.eval_utils import count_label, cal_prf, cal_acc
-from NNET.utils.model_utils import gen_used_text
+from NNET.utils.model_utils import sentences_to_idx, get_padding
 
 
 def log_prf_single(y_pred, y_true, model_name="Net", data_part="Test"):
@@ -58,6 +58,40 @@ def log_prf_single(y_pred, y_true, model_name="Net", data_part="Test"):
 
     # [accuracy, f1{Con/Pro}, macro_f1]
     return eval_result
+
+
+def gen_used_text(word2idx=None, texts=None, max_len=None, idx2word=None, text_idx=None, choice="string"):
+    """
+    Usually for sentences of one model
+    Given original text, return the actually model-used text (with _unk, _pad)
+        if given text_idx --> restore shorter-texts from text_idx
+        else              --> get text_idx with word2idx and do reversal step
+
+    :param word2idx:
+    :param texts:
+    :param max_len:
+    :param idx2word:
+    :param text_idx:
+    :return:
+    """
+    # Not given text_idx: generate according to max_len and word2idx
+    if text_idx is None:
+        if (word2idx is None) or (texts is None) or (max_len is None):
+            print("Need more information to gen text_idx")
+        else:
+            text_idx = sentences_to_idx(texts, word2idx)
+            text_idx, _ = get_padding(text_idx, max_len=max_len)
+
+    if idx2word is None:
+        idx2word = dict((v, k) for k, v in word2idx.items())
+
+    # text has max_length and paddings/unks
+    if choice == "string":
+        shorter_texts = [" ".join([idx2word[idx] for idx in t]) for t in text_idx]
+    else:
+        shorter_texts = [[idx2word[idx] for idx in t] for t in text_idx]
+
+    return shorter_texts
 
 
 def log_text_single(questions, answers, y_pred, y_true, idx2word=None, max_indexes=None):

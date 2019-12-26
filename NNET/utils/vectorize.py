@@ -5,10 +5,11 @@ import sys
 import random
 
 sys.path.append('../')
-from file_utils import read_file2lol, read_file2list, data_to_pickle, pickle_to_data, write_list2file, write_lol2file
-from vec_utils import read_emb
-from vec_text import make_datasets, preload_tvt
-import args
+from NNET import args
+
+from NNET.utils.file_utils import read_file2lol, read_file2list, data_to_pickle, pickle_to_data
+from NNET.utils.vec_utils import read_emb
+from NNET.utils.vec_text import make_datasets, preload_tvt
 
 np.random.seed(1234567)
 
@@ -107,7 +108,6 @@ def processing():
 
     print(datasets["label2idx"])
     print(word2idx["_padding"], word2idx["_unk"])
-
 
 # if __name__ == "__main__":
 #     processing()
