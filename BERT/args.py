@@ -1,79 +1,33 @@
 # -------------------------arg-------------------------
-SOURCES_FILE = '../data/input/dev.csv'
-ids_file = '../data/input/ids.txt'
-answers_file = '../data/input/answers.txt'
-questions_file = '../data/input/questions.txt'
-labels_file = '../data/input/labels.txt'
-
-# directory for input data
-in_dir = '../data'
-# directory for output pickles
-out_dir = '../data/output'
-# decide portion to spare for training and validation
-portion = 0.8
-# type of word embeddings baike
-emb = "baike"
-# baike_50 vector path
-baike_dir = '../data/input/baike-50.vec.txt'
-# all of labels
-labels = ['AGAINST', 'NONE', 'FAVOR']
-# use the all vocabulary
-big_voc = False
-# max time step of sentence sequence
-sen_max_len = 50
-# max time step of sentence sequence
-ask_max_len = 25
-
-# ############################### dataset dir
-# location of dataset
-input = 'input'
-# model save dir
-model_dir = './NNET/data/model/'
-# features baike dir
-features_baike_dir = './NNET/data/output/features_baike.pkl'
-# features baike training dir
-features_baike_training_dir = '/home/wjunneng/Ubuntu/2019-FlyAI-Chinese-Weibo-s-Position-Detection/NNET/data/output/features_baike_training.pkl'
-# features baike validation dir
-features_baike_validation_dir = './NNET/data/output/features_baike_validation.pkl'
-# word2idx baike dir
-word2idx_baike_dir = './NNET/data/output/word2idx_baike.pkl'
-# embeddings baike dir
-embeddings_baike_dir = './NNET/data/output/embeddings_baike.pkl'
-
 # ############################### model parameters
-# type of model to use for Stance Project
-model = "Net"
-# type of word embeddings
-embtype = "baike"
-# number of classes to predict
-nclass = 3
-# size of RNN hidden layer
-nhid = 50
-# number of layers of LSTM
-nlayers = 1
-# learning rate
-lr = 1e-4
-# number of training epoch
-epochs = 10
-# batch size
-batch_size = 8
-# dropout rate
-dropout = 0.5
-# max time step of answer sequence
-ans_len = 50
-# max time step of question sequence
-ask_len = 25
-# number of attention hops for RoomConditional models
-nhops = 3
-
-# ############################## test purpose
-# random seed for reproduction
-seed = 123456
-# use CUDA
-cuda = False
-# flag for training model or only test
-is_test = False
-# flag for testing correctness of program on 10 training records
-verify = False
-# flag for continue training on current model
-proceed = False
+model_name = 'bert_spc'
+dataset = 'laptop'
+optimizer = 'adam'
+initializer = 'xavier_uniform_'
+# 'try 5e-5, 2e-5 for BERT, 1e-3 for others'
+learning_rate = 2e-5
+dropout = 0.1
+l2reg = 0.01
+# try larger number for non-BERT models
+num_epoch = 10
+# try 16, 32, 64 for BERT models
+batch_size = 16
+log_step = 5
+embed_dim = 300
+hidden_dim = 300
+bert_dim = 768
+# default='bert-base-uncased'
+pretrained_bert_name = '/home/wjunneng/Ubuntu/NLP/情感分析/ABSA-PyTorch/pytorched_pretrain'
+max_seq_len = 80
+polarities_dim = 3
+hops = 3
+# e.g. cuda:0
+device = None
+# set seed for reproducibility
+seed = None
+# set ratio between 0 and 1 for validation support
+valset_ratio = 0
+# local context focus mode, cdw or cdm
+local_context_focus = 'cdm'
+# semantic-relative-distance, see the paper of LCF-BERT model
+SRD = 3
