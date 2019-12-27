@@ -12,10 +12,9 @@ from pytorch_transformers import BertModel
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import f1_score
 
+from BERT import args
 from BERT.utils.data_utils import ABSADataset
 from BERT.utils.data_utils import Tokenizer4Bert, bulid_tokenizer, build_embedding_matrix
-
-from BERT import args
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -89,7 +88,7 @@ class Instructor(object):
         t_targets_all, t_outputs_all = None, None
         with torch.no_grad():
             for t_batch, t_sample_batched in enumerate(data_loader):
-                t_inputs = [t_sample_batched[col].to(self.args.device) for col in self.args.input_cols]
+                t_inputs = [t_sample_batched[col].to(self.args.device) for col in self.args.inputs_cols]
                 t_outputs = self.model(t_inputs)
                 t_targets = t_sample_batched['polarity'].to(self.args.device)
 
@@ -172,6 +171,7 @@ class Instructor(object):
         best_model_path = self._train(criterion=criterion, optimizer=optimizer, train_data_loader=train_data_loader,
                                       val_data_loader=val_data_loader)
         logger.info('> train save model path: {}'.format(best_model_path))
+
         # 测试
         # test_data_loader = DataLoader(dataset=self.testset, batch_size=self.args.batch_size, shuffle=False)
         # self.model.load_state_dict(torch.load(best_model_path))

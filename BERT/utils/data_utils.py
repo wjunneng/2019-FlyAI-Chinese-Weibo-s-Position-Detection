@@ -12,6 +12,14 @@ class Tokenizer4Bert(object):
         self.tokenizer = BertTokenizer.from_pretrained(pretrained_bert_name)
         self.max_seq_len = max_seq_len
 
+    def text_to_sequence(self, text, reverse=False, padding='post', truncating='post'):
+        sequence = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
+        if len(sequence) == 0:
+            sequence = [0]
+        if reverse:
+            sequence = sequence[::-1]
+        return pad_and_truncate(sequence, self.max_seq_len, padding=padding, truncating=truncating)
+
 
 def bulid_tokenizer(fnames, max_seq_len, dat_fname):
     if os.path.exists(dat_fname):
@@ -51,6 +59,19 @@ class Tokenizer(object):
                 self.word2idx = self.idx
                 self.idx2word[self.idx] = word
                 self.idx += 1
+
+    def text_to_sequence(self, text, reverse=True, padding='post', truncating='post'):
+        if self.lower:
+            text = text.lower()
+        words = text.split()
+        unknownidx = len(self.word2idx) + 1
+        sequence = [self.word2idx[w] if w in self.word2idx else unknownidx for w in words]
+        if len(sequence) == 0:
+            sequence = [0]
+        if reverse:
+            sequence = sequence[::-1]
+
+        return pad_and_truncate(sequence, self.max_seq_len, padding=padding, truncating=truncating)
 
 
 def build_embedding_matrix(word2idx, embed_dim, dat_fname):

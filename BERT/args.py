@@ -5,7 +5,8 @@ from BERT.models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet
 
 # ############################### model parameters
 model_name = 'bert_spc'
-dataset = 'evasampledata4'
+# dataset = 'evasampledata4'
+dataset = 'acl-14-short-data'
 optimizer = 'adam'
 initializer = 'xavier_uniform_'
 # 'try 5e-5, 2e-5 for BERT, 1e-3 for others'
@@ -59,7 +60,11 @@ model_classes = {
 }
 dataset_files = {
     'evasampledata4': {
-        'train': '../data/evasampledata4-TaskAA.txt'
+        'train': '../data/evasampledata4/evasampledata4-TaskAA.txt'
+    },
+    'acl-14-short-data': {
+        'train': '../data/acl-14-short-data/train.raw',
+        'test': '../data/acl-14-short-data/test.raw'
     }
 }
 input_colses = {

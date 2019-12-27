@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# file: mgan.py
-# author: gene_zc <gene_zhangchen@163.com>
-# Copyright (C) 2018. All Rights Reserved.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
