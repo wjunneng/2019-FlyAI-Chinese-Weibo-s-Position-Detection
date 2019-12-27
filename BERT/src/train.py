@@ -14,8 +14,6 @@ from sklearn.metrics import f1_score
 
 from BERT.utils.data_utils import ABSADataset
 from BERT.utils.data_utils import Tokenizer4Bert, bulid_tokenizer, build_embedding_matrix
-from BERT.models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet_LF, AOA, MGAN, LCF_BERT, BERT_SPC, \
-    AEN_BERT
 
 from BERT import args
 
@@ -29,7 +27,8 @@ class Instructor(object):
         self.args = args
 
         if 'bert' in self.args.model_name:
-            tokenizer = Tokenizer4Bert(self.args.max_seq_len, self.args.pretrained_bert_name)
+            tokenizer = Tokenizer4Bert(max_seq_len=self.args.max_seq_len,
+                                       pretrained_bert_name=self.args.pretrained_bert_name)
             bert = BertModel.from_pretrained(pretrained_model_name_or_path=self.args.pretrained_bert_name)
             self.model = self.args.model_class(bert, self.args).to(self.args.device)
         else:
@@ -169,9 +168,10 @@ class Instructor(object):
         val_data_loader = DataLoader(dataset=self.valset, batch_size=self.args.batch_size, shuffle=False)
 
         self._reset_params()
+        # 训练
         best_model_path = self._train(criterion=criterion, optimizer=optimizer, train_data_loader=train_data_loader,
                                       val_data_loader=val_data_loader)
-
+        logger.info('> train save model path: {}'.format(best_model_path))
         # 测试
         # test_data_loader = DataLoader(dataset=self.testset, batch_size=self.args.batch_size, shuffle=False)
         # self.model.load_state_dict(torch.load(best_model_path))
@@ -188,66 +188,11 @@ if __name__ == '__main__':
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-    # default hyper-parameters for LCF-BERT model is as follws:
-    # lr: 2e-5
-    # l2: 1e-5
-    # batch size: 16
-    # num epochs: 5
-    model_classes = {
-        'lstm': LSTM,
-        'td_lstm': TD_LSTM,
-        'atae_lstm': ATAE_LSTM,
-        'ian': IAN,
-        'memnet': MemNet,
-        'ram': RAM,
-        'cabasc': Cabasc,
-        'tnet_lf': TNet_LF,
-        'aoa': AOA,
-        'mgan': MGAN,
-        'bert_spc': BERT_SPC,
-        'aen_bert': AEN_BERT,
-        'lcf_bert': LCF_BERT
-    }
-    dataset_files = {
-        'evasampledata4': {
-            'train': './data/evasampledata4-TaskAA.txt'
-        }
-    }
-    input_colses = {
-        'lstm': ['text_raw_indices'],
-        'td_lstm': ['text_left_with_aspect_indices', 'text_right_with_aspect_indices'],
-        'atae_lstm': ['text_raw_indices', 'aspect_indices'],
-        'ian': ['text_raw_indices', 'aspect_indices'],
-        'memnet': ['text_raw_without_aspect_indices', 'aspect_indices'],
-        'ram': ['text_raw_indices', 'aspect_indices', 'text_left_indices'],
-        'cabasc': ['text_raw_indices', 'aspect_indices', 'text_left_with_aspect_indices',
-                   'text_right_with_aspect_indices'],
-        'tnet_lf': ['text_raw_indices', 'aspect_indices', 'aspect_in_text'],
-        'aoa': ['text_raw_indices', 'aspect_indices'],
-        'mgan': ['text_raw_indices', 'aspect_indices', 'text_left_indices'],
-        'bert_spc': ['text_bert_indices', 'bert_segments_ids'],
-        'aen_bert': ['text_raw_bert_indices', 'aspect_bert_indices'],
-        'lcf_bert': ['text_bert_indices', 'bert_segments_ids', 'text_raw_bert_indices', 'aspect_bert_indices'],
-    }
-    initializers = {
-        'xavier_uniform_': torch.nn.init.xavier_uniform_,
-        'xavier_normal_': torch.nn.init.xavier_normal,
-        'orthogonal_': torch.nn.init.orthogonal_,
-    }
-    optimizers = {
-        'adadelta': torch.optim.Adadelta,  # default lr=1.0
-        'adagrad': torch.optim.Adagrad,  # default lr=0.01
-        'adam': torch.optim.Adam,  # default lr=0.001
-        'adamax': torch.optim.Adamax,  # default lr=0.002
-        'asgd': torch.optim.ASGD,  # default lr=0.01
-        'rmsprop': torch.optim.RMSprop,  # default lr=0.01
-        'sgd': torch.optim.SGD,
-    }
-    args.model_class = model_classes[args.model_name]
-    args.dataset_file = dataset_files[args.dataset]
-    args.inputs_cols = input_colses[args.model_name]
-    args.initializer = initializers[args.initializer]
-    args.optimizer = optimizers[args.optimizer]
+    args.model_class = args.model_classes[args.model_name]
+    args.dataset_file = args.dataset_files[args.dataset]
+    args.inputs_cols = args.input_colses[args.model_name]
+    args.initializer = args.initializers[args.initializer]
+    args.optimizer = args.optimizers[args.optimizer]
     args.device = torch.device(
         'cuda:0' if torch.cuda.is_available() else 'cpu') if args.device is None else torch.device(args.device)
 

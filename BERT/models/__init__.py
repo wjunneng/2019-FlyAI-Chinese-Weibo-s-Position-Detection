@@ -14,3 +14,5 @@ from BERT.models.tnet_lf import TNet_LF
 from BERT.models.aoa import AOA
 from BERT.models.mgan import MGAN
 from BERT.models.lcf_bert import LCF_BERT
+from BERT.models.bert_spc import BERT_SPC
+from BERT.models.aen import AEN_BERT
