@@ -85,21 +85,21 @@ def processing():
     vocab = read_emb(filename=args.baike_dir, emb_type=2, stat_lines=0)
 
     # 3. Transform text into indexes
-    feat_names = ["xIndexes", "xQuestions", "yLabels"]
     label2idx = dict((args.labels[i], i) for i in range(len(args.labels)))
     datasets, word2idx, embeddings = make_datasets(vocab, raw_data, label2idx=label2idx,  # !!! Critical for label2idx
-                                                   big_voc=args.big_voc, feat_names=feat_names)
+                                                   big_voc=args.big_voc, feat_names=args.feat_names)
 
     # 4. Write training materials into pickles
     data_to_pickle(datasets, out_dir + "/features_" + args.emb + ".pkl")
     data_to_pickle(word2idx, out_dir + "/word2idx_" + args.emb + ".pkl")
     data_to_pickle(embeddings, out_dir + "/embeddings_" + args.emb + ".pkl")
 
+    # 5. Pad the training data
     print("hello------------------------")
     tit = time.time()
-    # 5. Pad the training data
     preload_tvt(datasets, max_lens=[args.sen_max_len, args.ask_max_len], out_dir=out_dir, emb=args.emb,
-                feat_names=feat_names)
+                feat_names=args.feat_names)
+
     print("hello------------------------", (time.time() - tit))
     # test correctness
     datasets = pickle_to_data(out_dir + "/features_" + args.emb + ".pkl")

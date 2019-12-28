@@ -14,9 +14,11 @@ portion = 0.8
 # type of word embeddings baike
 emb = "baike"
 # baike_50 vector path
-baike_dir = '../data/input/baike-50.vec.txt'
+baike_dir = '../NNET/data/input/baike-50.vec.txt'
 # all of labels
-labels = ['AGAINST', 'NONE', 'FAVOR']
+labels = ['NONE', 'FAVOR', 'AGAINST']
+# feat names
+feat_names = ["xIndexes", "xQuestions", "yLabels"]
 # use the all vocabulary
 big_voc = False
 # max time step of sentence sequence

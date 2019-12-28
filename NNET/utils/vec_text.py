@@ -90,7 +90,6 @@ def make_datasets(vocab, raw_data, label2idx, big_voc=False, feat_names=None):
         word2idx["_unk"] = vocab["word2idx"]["_unk"]
         embeddings.append(vocab["embeddings"][1])
 
-    # datasets["label2idx"] = {-1: 0, 0: 1, 1: 2}  # dict((i-1, i) for i in range(num_classes))
     datasets["label2idx"] = label2idx
 
     if not feat_names:
@@ -105,6 +104,7 @@ def make_datasets(vocab, raw_data, label2idx, big_voc=False, feat_names=None):
 
     embeddings = np.asarray(embeddings, dtype=np.float32)
     embeddings = embeddings.reshape(len(embeddings), -1)
+
     return datasets, word2idx, embeddings
 
 
