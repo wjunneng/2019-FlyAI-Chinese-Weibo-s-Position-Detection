@@ -98,8 +98,8 @@ def processing():
     print("hello------------------------")
     tit = time.time()
     # 5. Pad the training data
-    preload_tvt(datasets, max_lens=[args.sen_max_len, args.ask_max_len],
-                out_dir=out_dir, emb=args.emb, feat_names=feat_names)
+    preload_tvt(datasets, max_lens=[args.sen_max_len, args.ask_max_len], out_dir=out_dir, emb=args.emb,
+                feat_names=feat_names)
     print("hello------------------------", (time.time() - tit))
     # test correctness
     datasets = pickle_to_data(out_dir + "/features_" + args.emb + ".pkl")

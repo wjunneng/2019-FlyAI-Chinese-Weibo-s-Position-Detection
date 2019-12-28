@@ -53,10 +53,6 @@ nhid = 50
 nlayers = 1
 # learning rate
 lr = 1e-4
-# number of training epoch
-epochs = 10
-# batch size
-batch_size = 8
 # dropout rate
 dropout = 0.5
 # max time step of answer sequence
@@ -71,7 +67,5 @@ nhops = 3
 seed = 123456
 # flag for training model or only test
 is_test = False
-# flag for testing correctness of program on 10 training records
-verify = False
 # flag for continue training on current model
 proceed = False

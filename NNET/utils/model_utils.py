@@ -44,7 +44,7 @@ def load_test_text(feat_filenames, seged=True):
     return test_text
 
 
-def load_test_data(feat_filenames, word2idx_filename, max_lens=(45, 25), seged=True):
+def load_test_data(feat_filenames, word2idx_filename, max_lens=(50, 25), seged=True):
     """
     Load data into vectors:
         1. read text and seg text
@@ -161,7 +161,7 @@ def load_torch_model(model_path):
 #   Generate real text for comparison
 ###################
 
-def classify_batch(model, features, max_lens=(45, 25)):
+def classify_batch(model, features, max_lens=(50, 25)):
     """
     !!! Specify the mode of model before calling
     Predict a single batch return probabilities & max_att_index

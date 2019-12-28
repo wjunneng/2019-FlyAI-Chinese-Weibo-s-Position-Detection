@@ -46,7 +46,7 @@ class Net(nn.Module):
 
     """
 
-    def __init__(self, embeddings, input_dim, hidden_dim, num_layers, output_dim, max_step=(45, 25), dropout=0.5,
+    def __init__(self, embeddings, input_dim, hidden_dim, num_layers, output_dim, max_step=(50, 25), dropout=0.5,
                  num_hops=5):
         super(Net, self).__init__()
 
@@ -185,7 +185,7 @@ class Net(nn.Module):
         out_scores = F.softmax(out, dim=1)
 
         # .cuda()
-        key_index = Variable(torch.LongTensor([0] * batch_size))
+        key_index = Variable(torch.LongTensor([0] * batch_size)).to(device=device)
 
         # print out_scores
         return out_scores, key_index.view(-1)
