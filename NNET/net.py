@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+import args
 torch.manual_seed(123456)
 
 """
@@ -23,6 +24,13 @@ Model: Read the question and answer for many times to get more distilled answer
 1. Use an RNN to control the reading process!
 2. 
 """
+# 判断gpu是否可用
+if torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu'
+device = torch.device(device)
+torch.cuda.manual_seed(args.seed)
 
 
 class Net(nn.Module):
@@ -44,7 +52,7 @@ class Net(nn.Module):
 
         self.emb = nn.Embedding(num_embeddings=embeddings.size(0),
                                 embedding_dim=embeddings.size(1),
-                                padding_idx=0)
+                                padding_idx=0).to(device=device)
         self.emb.weight = nn.Parameter(embeddings)
         # self.emb = nn.Embedding(vocab_size, embedding_dim)
 
@@ -61,7 +69,7 @@ class Net(nn.Module):
                               num_layers=num_layers,
                               dropout=dropout,
                               batch_first=True,
-                              bidirectional=True)
+                              bidirectional=True).to(device=device)
 
         # Ans encoder
         self.ans_len = max_step[0]
@@ -70,16 +78,16 @@ class Net(nn.Module):
                               num_layers=num_layers,
                               dropout=dropout,
                               batch_first=True,
-                              bidirectional=True)
+                              bidirectional=True).to(device=device)
 
-        self.roo = nn.GRUCell(2 * self.hidden_dim, 2 * self.hidden_dim)
+        self.roo = nn.GRUCell(2 * self.hidden_dim, 2 * self.hidden_dim).to(device=device)
 
         # self.ask_fc = nn.Linear(2*self.hidden_dim, 2*self.hidden_dim)
         # self.ans_fc = nn.Linear(2*self.hidden_dim, 2*self.hidden_dim)
         #
         # self.cat_fc = nn.Linear(2*self.hidden_dim, 2*self.hidden_dim)
 
-        self.output = nn.Linear(2 * self.hidden_dim, self.output_dim)
+        self.output = nn.Linear(2 * self.hidden_dim, self.output_dim).to(device=device)
 
     def attention(self, aspect, memory, mask_matrix):
         """
@@ -157,7 +165,7 @@ class Net(nn.Module):
 
         # h_0 = Variable(torch.rand(batch_size, 2*self.hidden_dim)).cuda()
         # .cuda()
-        h_0 = Variable(torch.zeros(batch_size, 2 * self.hidden_dim))
+        h_0 = Variable(torch.zeros(batch_size, 2 * self.hidden_dim)).to(device=device)
         h_t = h_0
         for step_t in range(self.nhops):
             # for step_t in range(3):

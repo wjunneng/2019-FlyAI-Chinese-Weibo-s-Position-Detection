@@ -1,3 +1,8 @@
+# -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 from NNET.utils.eval_utils import count_label, cal_prf, cal_acc
 from NNET.utils.model_utils import sentences_to_idx, get_padding
 

@@ -1,3 +1,8 @@
+# -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 from collections import Counter
 import numpy as np
 import random

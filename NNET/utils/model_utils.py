@@ -1,3 +1,8 @@
+# -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 import os
 import time
 import torch
@@ -9,6 +14,14 @@ from NNET.utils.vec_utils import get_mask_matrix, get_padding, sentences_to_idx,
 from NNET.utils.file_utils import read_file2list, read_file2lol, pickle_to_data
 from NNET.utils.str_utils import seg_sentences
 from NNET.utils.log_utils import log_text_single, log_prf_single
+
+# 判断gpu是否可用
+if torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu'
+device = torch.device(device)
+torch.cuda.manual_seed(args.seed)
 
 
 #############################################################
@@ -124,18 +137,17 @@ def tensor_to_numpy(use_cuda, tensor, dim=(-1,)):
     return ndarray
 
 
-def tensors_to_numpy(use_cuda, tensors, dim=(-1,)):
-    if use_cuda:
+def tensors_to_numpy(tensors, dim=(-1,)):
+    if torch.cuda.is_available():
         ndarray = [tensor.view(dim).cpu().data.numpy() for tensor in tensors]
     else:
-        # print(use_cuda, type(tensors[2].data))
         ndarray = [tensor.view(dim).data.numpy() for tensor in tensors]
     return ndarray
 
 
-def load_torch_model(model_path, use_cuda=True):
+def load_torch_model(model_path):
     with open(model_path + "/model.pt", "rb") as f:
-        if use_cuda:
+        if torch.cuda.is_available():
             model = torch.load(f)
         else:
             model = torch.load(f, map_location=lambda storage, loc: storage)
@@ -149,7 +161,7 @@ def load_torch_model(model_path, use_cuda=True):
 #   Generate real text for comparison
 ###################
 
-def classify_batch(model, features, use_cuda=True, max_lens=(45, 25)):
+def classify_batch(model, features, max_lens=(45, 25)):
     """
     !!! Specify the mode of model before calling
     Predict a single batch return probabilities & max_att_index
@@ -164,20 +176,12 @@ def classify_batch(model, features, use_cuda=True, max_lens=(45, 25)):
     batch_size = len(answers)
     ans_len, ask_len = max_lens
 
-    questions_ = Variable(torch.LongTensor(questions).view(batch_size, ask_len))
-    questions_seqlen_ = Variable(torch.LongTensor(questions_seqlen).view(batch_size, 1))
-    questions_mask_ = Variable(torch.LongTensor(questions_mask).view(batch_size, ask_len))
-    answers_ = Variable(torch.LongTensor(answers).view(batch_size, ans_len))
-    answers_seqlen_ = Variable(torch.LongTensor(answers_seqlen).view(batch_size, 1))
-    answers_mask_ = Variable(torch.LongTensor(answers_mask).view(batch_size, ans_len))
-
-    if use_cuda:
-        questions_ = questions_.cuda()
-        questions_seqlen_ = questions_seqlen_.cuda()
-        questions_mask_ = questions_mask_.cuda()
-        answers_ = answers_.cuda()
-        answers_seqlen_ = answers_seqlen_.cuda()
-        answers_mask_ = answers_mask_.cuda()
+    questions_ = Variable(torch.LongTensor(questions).view(batch_size, ask_len)).to(device)
+    questions_seqlen_ = Variable(torch.LongTensor(questions_seqlen).view(batch_size, 1)).to(device)
+    questions_mask_ = Variable(torch.LongTensor(questions_mask).view(batch_size, ask_len)).to(device)
+    answers_ = Variable(torch.LongTensor(answers).view(batch_size, ans_len)).to(device)
+    answers_seqlen_ = Variable(torch.LongTensor(answers_seqlen).view(batch_size, 1)).to(device)
+    answers_mask_ = Variable(torch.LongTensor(answers_mask).view(batch_size, ans_len)).to(device)
 
     assert len(answers) == len(questions)
 
@@ -185,7 +189,7 @@ def classify_batch(model, features, use_cuda=True, max_lens=(45, 25)):
     return outputs
 
 
-def classify_batches(batch_size, model, features, use_cuda=True, max_lens=(50, 25)):
+def classify_batches(batch_size, model, features, max_lens=(50, 25)):
     """
     :param batch_size:
     :param model:
@@ -201,53 +205,15 @@ def classify_batches(batch_size, model, features, use_cuda=True, max_lens=(50, 2
     max_indexes = []
     max_probs = []
     for one_batch in batches_to_classify:
-        outputs = classify_batch(model, one_batch, use_cuda, max_lens=max_lens)
-
+        outputs = classify_batch(model, one_batch, max_lens=max_lens)
         probs, max_idx = outputs[0], outputs[1]
         max_prob_batch, pred_batch = torch.max(probs, dim=1)
-        pred_batch, max_prob_batch, max_index_batch = tensors_to_numpy(use_cuda, [pred_batch, max_prob_batch, max_idx])
+        pred_batch, max_prob_batch, max_index_batch = tensors_to_numpy([pred_batch, max_prob_batch, max_idx])
         y_pred.extend(pred_batch)
         max_indexes.extend(max_index_batch)
         max_probs.extend(max_prob_batch)
 
     return y_pred, max_indexes, max_probs
-
-
-def train_step(model, training_data, optimizer, criterion):
-    """
-    train step
-    :param model:
-    :param training_data:
-    :param optimizer:
-    :param criterion:
-    :return:
-    """
-    features, seq_lens, mask_matrice, labels = training_data
-    (answers, answers_seqlen, answers_mask), (questions, questions_seqlen, questions_mask) \
-        = zip(features, seq_lens, mask_matrice)
-    assert args.batch_size == len(labels) == len(questions) == len(answers)
-    feats = [answers, answers_seqlen, answers_mask, questions, questions_seqlen, questions_mask]
-
-    # verify the correctness: default false
-    if args.verify:
-        feats = [feat[:10] for feat in feats]
-        labels = labels[:10]
-
-    # Prepare data and prediction
-    labels_ = Variable(torch.LongTensor(labels))
-    if args.cuda:
-        labels_ = labels_.cuda()
-
-    # necessary for Room model
-    torch.nn.utils.clip_grad_norm(model.parameters(), 0.25)
-
-    model.zero_grad()
-    outputs = classify_batch(model, feats, use_cuda=args.cuda, max_lens=(args.ans_len, args.ask_len))
-    probs = outputs[0]
-    loss = criterion(probs.view(len(labels_), -1), labels_)
-
-    loss.backward()
-    optimizer.step()
 
 
 def test(model, dataset, log_result=True, data_part="test"):
@@ -270,7 +236,7 @@ def test(model, dataset, log_result=True, data_part="test"):
             labels
 
     """
-    test_set = pickle_to_data("../data/output/features_%s_%s.pkl" % (args.embtype, data_part))
+    test_set = pickle_to_data("./NNET/data/output/features_%s_%s.pkl" % (args.embtype, data_part))
 
     test_len = len(test_set)
     # always
@@ -287,10 +253,7 @@ def test(model, dataset, log_result=True, data_part="test"):
 
     batch_size = 100
     model.eval()
-    pred, max_indexes, _ = classify_batches(batch_size, model,
-                                            features=feats,
-                                            use_cuda=args.cuda,
-                                            max_lens=(args.ans_len, args.ask_len))
+    pred, max_indexes, _ = classify_batches(batch_size, model, features=feats, max_lens=(args.ans_len, args.ask_len))
 
     tit = time.time() - tic
     print("\n  Predicting {:d} examples using {:5.4f} seconds".format(len(test_set), tit))
@@ -302,8 +265,8 @@ def test(model, dataset, log_result=True, data_part="test"):
         log_text_single(questions, answers, pred, labels, dataset["idx2word"], max_indexes)
 
     """ 4. log and return prf scores """
-    _, full_model = gen_model_path_by_args("", [args.model, args.nhid, args.ans_len,
-                                                args.ask_len, args.batch_size, args.input])
+    _, full_model = gen_model_path_by_args("", [args.model, args.nhid, args.ans_len, args.ask_len, args.batch_size,
+                                                args.input])
     eval_result = log_prf_single(y_pred=pred, y_true=labels, model_name=args.model)
     macro_f1, acc = eval_result["macro_f"], eval_result["accuracy"]
 

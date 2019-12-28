@@ -1,5 +1,4 @@
 # -*- coding:utf-8 -*-
-
 import os
 import sys
 import torch
@@ -9,13 +8,13 @@ import time
 import torch.nn as nn
 import torch.optim as optim
 from progress.bar import Bar
+from torch.autograd import Variable
 
 sys.path.append('../')
 from NNET.net import Net
 import NNET.args as arguments
-from flyai.dataset import Dataset
 from NNET.utils.file_utils import pickle_to_data
-from NNET.utils.model_utils import load_torch_model, train_step, test
+from NNET.utils.model_utils import load_torch_model, test, classify_batch
 
 torch.manual_seed(arguments.seed)
 
@@ -31,22 +30,23 @@ if torch.cuda.is_available():
 else:
     device = 'cpu'
 device = torch.device(device)
+torch.cuda.manual_seed(arguments.seed)
 
 
 # dataset = Dataset(epochs=args.EPOCHS, batch=args.BATCH)
 
 
 def main():
-    # 2. load dataset
+    # 1. load dataset
     dataset = pickle_to_data(arguments.features_baike_dir)
     word2idx = pickle_to_data(arguments.word2idx_baike_dir)
     idx2word = dict((v, k) for k, v in word2idx.items())
     dataset["word2idx"] = word2idx
     dataset["idx2word"] = idx2word
 
-    # 3. test, proceed, train
+    # 2. test, proceed, train
     if arguments.is_test:
-        model = load_torch_model(arguments.model_dir, use_cuda=arguments.cuda)
+        model = load_torch_model(arguments.model_dir)
         test(model, dataset)
 
     else:
@@ -76,14 +76,8 @@ def main():
             if arguments.model in ["Net"]:
                 model.nhops = arguments.nhops
 
-        if torch.cuda.is_available():
-            if not arguments.cuda:
-                print("Waring: You have a CUDA device, so you should probably run with --cuda")
-            else:
-                torch.cuda.manual_seed(arguments.seed)
-                model.cuda(device=device)
-
         # train
+        model.cuda(device=device)
         optimizer = optim.Adam(model.parameters(), lr=arguments.lr, weight_decay=5e-5)
         criterion = nn.CrossEntropyLoss()
 
@@ -101,8 +95,33 @@ def main():
         for step in range(max_train_steps):
             bar.next()
             training_batch = training_set.next_batch(arguments.batch_size)
+            model.train()
             # xIndexes, xQuestions, yLabels
-            train_step(model, training_batch, optimizer, criterion)
+            # train_step(model, training_batch, optimizer, criterion)
+            features, seq_lens, mask_matrice, labels = training_batch
+            (answers, answers_seqlen, answers_mask), (questions, questions_seqlen, questions_mask) \
+                = zip(features, seq_lens, mask_matrice)
+            assert arguments.batch_size == len(labels) == len(questions) == len(answers)
+            feats = [answers, answers_seqlen, answers_mask, questions, questions_seqlen, questions_mask]
+
+            # verify the correctness: default false
+            if arguments.verify:
+                feats = [feat[:10] for feat in feats]
+                labels = labels[:10]
+
+            # Prepare data and prediction
+            labels_ = Variable(torch.LongTensor(labels)).to(device)
+
+            # necessary for Room model
+            torch.nn.utils.clip_grad_norm(model.parameters(), 0.25)
+
+            model.zero_grad()
+            outputs = classify_batch(model, feats, max_lens=(arguments.ans_len, arguments.ask_len))
+            probs = outputs[0]
+            loss = criterion(probs.view(len(labels_), -1), labels_)
+
+            loss.backward()
+            optimizer.step()
 
             # Test after each epoch
             if (step + 1) % batches_per_epoch == 0:

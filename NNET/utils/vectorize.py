@@ -1,12 +1,14 @@
+# -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 import numpy as np
 import os
 import time
-import sys
 import random
 
-sys.path.append('../')
 from NNET import args
-
 from NNET.utils.file_utils import read_file2lol, read_file2list, data_to_pickle, pickle_to_data
 from NNET.utils.vec_utils import read_emb
 from NNET.utils.vec_text import make_datasets, preload_tvt
@@ -85,11 +87,8 @@ def processing():
     # 3. Transform text into indexes
     feat_names = ["xIndexes", "xQuestions", "yLabels"]
     label2idx = dict((args.labels[i], i) for i in range(len(args.labels)))
-    datasets, word2idx, embeddings = make_datasets(vocab,
-                                                   raw_data,
-                                                   label2idx=label2idx,  # !!! Critical for label2idx
-                                                   big_voc=args.big_voc,
-                                                   feat_names=feat_names)
+    datasets, word2idx, embeddings = make_datasets(vocab, raw_data, label2idx=label2idx,  # !!! Critical for label2idx
+                                                   big_voc=args.big_voc, feat_names=feat_names)
 
     # 4. Write training materials into pickles
     data_to_pickle(datasets, out_dir + "/features_" + args.emb + ".pkl")
@@ -109,5 +108,6 @@ def processing():
     print(datasets["label2idx"])
     print(word2idx["_padding"], word2idx["_unk"])
 
-# if __name__ == "__main__":
-#     processing()
+
+if __name__ == "__main__":
+    processing()

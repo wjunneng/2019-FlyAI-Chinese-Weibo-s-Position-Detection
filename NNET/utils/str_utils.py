@@ -1,9 +1,8 @@
-"""
-A " + filename + " for utilities used in other files.
-Methods:
-    segment_words
+# -*- coding:utf-8 -*-
+import sys
 
-"""
+sys.path.append('../')
+
 import os
 import sys
 from pyltp import Segmentor
@@ -108,7 +107,7 @@ def list_to_str(list_of_words, has_blank=True):
 
 def str_to_list(sentence_in_string):
     """convert strings with '\n' to list of words without '\n' """
-    return sentence_in_string.strip().split()   # remove last \n
+    return sentence_in_string.strip().split()  # remove last \n
 
 
 ###############
@@ -116,4 +115,3 @@ def str_to_list(sentence_in_string):
 ###############
 def decide_run_place():
     return "../data/"
-

@@ -32,7 +32,7 @@ model_dir = './NNET/data/model/'
 # features baike dir
 features_baike_dir = './NNET/data/output/features_baike.pkl'
 # features baike training dir
-features_baike_training_dir = '/home/wjunneng/Ubuntu/2019-FlyAI-Chinese-Weibo-s-Position-Detection/NNET/data/output/features_baike_training.pkl'
+features_baike_training_dir = './NNET/data/output/features_baike_training.pkl'
 # features baike validation dir
 features_baike_validation_dir = './NNET/data/output/features_baike_validation.pkl'
 # word2idx baike dir
@@ -69,8 +69,6 @@ nhops = 3
 # ############################## test purpose
 # random seed for reproduction
 seed = 123456
-# use CUDA
-cuda = False
 # flag for training model or only test
 is_test = False
 # flag for testing correctness of program on 10 training records

@@ -1,8 +1,11 @@
 # -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 import jieba
 import pandas as pd
 import pickle
-import os
 
 from NNET import args
 from NNET.utils.str_utils import str_to_list, list_to_str

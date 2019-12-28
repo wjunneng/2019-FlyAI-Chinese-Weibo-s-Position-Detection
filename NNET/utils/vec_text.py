@@ -1,13 +1,12 @@
+# -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 import numpy as np
 from NNET.utils.file_utils import data_to_pickle
 from NNET.utils.vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
-"""
-Codes for scenarios where feature  are only text input
-Especially useful for
-    1) sentence-classification
-    2)
 
-"""
 ################################
 # Raw data --> json or pickle
 # output file style looks like this:
@@ -52,11 +51,11 @@ def make_data(raw_data_i, vocab, word2idx, embeddings, label2idx, big_voc=False,
 
     data = dict()
     if big_voc:
-        for idx in range(len(feat_names)-1):
+        for idx in range(len(feat_names) - 1):
             feat_name = feat_names[idx]
             data[feat_name] = sentences_to_idx(feats[idx], word2idx)
     else:
-        for idx in range(len(feat_names)-1):
+        for idx in range(len(feat_names) - 1):
             feat_name = feat_names[idx]
             data[feat_name] = sentences_to_idx_small_vocab(feats[idx], vocab, word2idx,
                                                            embeddings, prompt=feat_name)
@@ -140,7 +139,7 @@ def load_tvt(tvt_set, max_lens, feat_names=None):
 
     if not feat_names:
         feat_names = ["xIndexes", "yLabels"]
-    assert len(feat_names) == len(max_lens)+1
+    assert len(feat_names) == len(max_lens) + 1
 
     # decide how many inputs!!!
     feats = [tvt_set[key] for key in feat_names]

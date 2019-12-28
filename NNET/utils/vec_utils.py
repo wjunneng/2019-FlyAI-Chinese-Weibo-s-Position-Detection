@@ -1,8 +1,14 @@
+# -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 import numpy as np
+
 from NNET.utils.file_utils import data_to_pickle, pickle_to_data
 
+np.random.seed(123456)
 
-# np.random.seed(123456)
 
 #############################################################
 ###################
@@ -483,7 +489,6 @@ def get_batch(batch_size, total_num, features):
         feature_batch = [feature[num_batch * batch_size:]
                          for feature in features]
         yield feature_batch
-
 
 # if __name__ == "__main__":
 #     print("------------This is for utility test--------------")

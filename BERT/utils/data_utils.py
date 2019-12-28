@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 import pickle
+import pandas as pd
 from torch.utils.data import Dataset
 from pytorch_transformers import BertTokenizer
 
@@ -115,8 +116,16 @@ def pad_and_truncate(sequence, maxlen, dtype='int64', padding='post', truncating
 
 
 class ABSADataset(Dataset):
-    def __init__(self, fname, tokenizer):
-        with open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
+    def __init__(self, data_type, fname, tokenizer):
+        self.fname = fname
+        self.tokenizer = tokenizer
+        if data_type == 'csv':
+            self.data = self._deal_csv()
+        else:
+            self.data = self._deal_txt()
+
+    def _deal_txt(self):
+        with open(self.fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
             lines = file.readlines()
 
         all_data = []
@@ -125,27 +134,27 @@ class ABSADataset(Dataset):
             aspect = lines[i + 1].lower().strip()
             polarity = lines[i + 2].strip()
 
-            text_raw_indices = tokenizer.text_to_sequence(text_left + " " + aspect + " " + text_right)
-            text_raw_without_aspect_indices = tokenizer.text_to_sequence(text_left + " " + text_right)
-            text_left_indices = tokenizer.text_to_sequence(text_left)
-            text_left_with_aspect_indices = tokenizer.text_to_sequence(text_left + " " + aspect)
-            text_right_indices = tokenizer.text_to_sequence(text_right, reverse=True)
-            text_right_with_aspect_indices = tokenizer.text_to_sequence(" " + aspect + " " + text_right,
-                                                                        reverse=True)
-            aspect_indices = tokenizer.text_to_sequence(aspect)
+            text_raw_indices = self.tokenizer.text_to_sequence(text_left + " " + aspect + " " + text_right)
+            text_raw_without_aspect_indices = self.tokenizer.text_to_sequence(text_left + " " + text_right)
+            text_left_indices = self.tokenizer.text_to_sequence(text_left)
+            text_left_with_aspect_indices = self.tokenizer.text_to_sequence(text_left + " " + aspect)
+            text_right_indices = self.tokenizer.text_to_sequence(text_right, reverse=True)
+            text_right_with_aspect_indices = self.tokenizer.text_to_sequence(" " + aspect + " " + text_right,
+                                                                             reverse=True)
+            aspect_indices = self.tokenizer.text_to_sequence(aspect)
             left_context_len = np.sum(text_left_indices != 0)
             aspect_len = np.sum(aspect_indices != 0)
             aspect_in_text = torch.tensor([left_context_len.item(), (left_context_len + aspect_len - 1).item()])
             polarity = int(polarity) + 1
 
-            text_bert_indices = tokenizer.text_to_sequence(
+            text_bert_indices = self.tokenizer.text_to_sequence(
                 '[CLS] ' + text_left + " " + aspect + " " + text_right + ' [SEP] ' + aspect + " [SEP]")
             bert_segments_ids = np.asarray([0] * (np.sum(text_raw_indices != 0) + 2) + [1] * (aspect_len + 1))
-            bert_segments_ids = pad_and_truncate(bert_segments_ids, tokenizer.max_seq_len)
+            bert_segments_ids = pad_and_truncate(bert_segments_ids, self.tokenizer.max_seq_len)
 
-            text_raw_bert_indices = tokenizer.text_to_sequence(
+            text_raw_bert_indices = self.tokenizer.text_to_sequence(
                 "[CLS] " + text_left + " " + aspect + " " + text_right + " [SEP]")
-            aspect_bert_indices = tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
+            aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
 
             data = {
                 'text_bert_indices': text_bert_indices,
@@ -164,7 +173,14 @@ class ABSADataset(Dataset):
             }
 
             all_data.append(data)
-        self.data = all_data
+        return all_data
+
+    def _deal_csv(self):
+        data = pd.read_csv(filepath_or_buffer=self.fname, sep='\t', encoding='utf-8')
+        ID = data['ID']
+        TARGET = data['TARGET']
+        TEXT = data['TEXT']
+        STANCE = data['STANCE']
 
     def __getitem__(self, index):
         return self.data[index]

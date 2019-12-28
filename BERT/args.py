@@ -5,8 +5,13 @@ from BERT.models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet
 
 # ############################### model parameters
 model_name = 'bert_spc'
+
 # dataset = 'evasampledata4'
+# data_type = 'csv'
+
 dataset = 'acl-14-short-data'
+data_type = 'txt'
+
 optimizer = 'adam'
 initializer = 'xavier_uniform_'
 # 'try 5e-5, 2e-5 for BERT, 1e-3 for others'
@@ -31,7 +36,7 @@ device = None
 # set seed for reproducibility
 seed = None
 # set ratio between 0 and 1 for validation support
-valset_ratio = 0
+valset_ratio = 0.2
 # local context focus mode, cdw or cdm
 local_context_focus = 'cdm'
 # semantic-relative-distance, see the paper of LCF-BERT model

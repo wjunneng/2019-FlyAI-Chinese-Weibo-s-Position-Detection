@@ -43,13 +43,16 @@ class Instructor(object):
             )
             self.model = self.args.model_class(embedding_matrix, self.args).to(self.args.device)
 
-        self.trainset = ABSADataset(self.args.dataset_file['train'], tokenizer)
-        self.testset = ABSADataset(self.args.dataset_file['test'], tokenizer)
+        self.trainset = ABSADataset(data_type=self.args.data_type, fname=self.args.dataset_file['train'],
+                                    tokenizer=tokenizer)
+
         assert 0 <= self.args.valset_ratio < 1
         if self.args.valset_ratio > 0:
             valset_len = int(len(self.trainset) * self.args.valset_ratio)
             self.trainset, self.valset = random_split(self.trainset, (len(self.trainset) - valset_len, valset_len))
         else:
+            self.testset = ABSADataset(data_type=self.args.data_type, fname=self.args.dataset_file['test'],
+                                       tokenizer=tokenizer)
             self.valset = self.testset
 
         if self.args.device.type == 'cuda':
