@@ -1,17 +1,13 @@
 # -*- coding:utf-8 -*-
-import sys
-
-sys.path.append('../')
-
 import numpy as np
 import os
 import time
 import random
 
-from NNET import args
-from NNET.utils.file_utils import read_file2lol, read_file2list, data_to_pickle, pickle_to_data
-from NNET.utils.vec_utils import read_emb
-from NNET.utils.vec_text import make_datasets, preload_tvt
+import args
+from utils.file_utils import read_file2lol, read_file2list, data_to_pickle, pickle_to_data
+from utils.vec_utils import read_emb
+from utils.vec_text import make_datasets, preload_tvt
 
 np.random.seed(1234567)
 

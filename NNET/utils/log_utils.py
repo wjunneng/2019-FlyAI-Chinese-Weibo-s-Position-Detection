@@ -1,10 +1,6 @@
 # -*- coding:utf-8 -*-
-import sys
-
-sys.path.append('../')
-
-from NNET.utils.eval_utils import count_label, cal_prf, cal_acc
-from NNET.utils.model_utils import sentences_to_idx, get_padding
+from utils.eval_utils import count_label, cal_prf, cal_acc
+from utils.model_utils import sentences_to_idx, get_padding
 
 
 def log_prf_single(y_pred, y_true, model_name="Net", data_part="Test"):

@@ -16,11 +16,10 @@ from progress.bar import Bar
 from torch.autograd import Variable
 
 import args as arguments
-from NNET.net import Net
-from NNET.utils.vec_utils import read_emb
-from NNET.utils.vec_text import make_datasets, load_tvt
-from NNET.utils.model_utils import load_torch_model, test, classify_batch
-from NNET.utils.vectorize import shuffle
+from net import Net
+from utils.vec_utils import read_emb
+from utils.vec_text import make_datasets, load_tvt
+from utils.model_utils import load_torch_model, test, classify_batch
 from flyai.dataset import Dataset
 
 torch.manual_seed(arguments.seed)
@@ -36,7 +35,7 @@ class StanceDetection(object):
     def __init__(self, exec_type='train'):
         # 项目的超参
         parser = argparse.ArgumentParser()
-        parser.add_argument("-e", "--EPOCHS", default=100, type=int, help="train epochs")
+        parser.add_argument("-e", "--EPOCHS", default=50, type=int, help="train epochs")
         parser.add_argument("-b", "--BATCH", default=2, type=int, help="batch size")
         self.args = parser.parse_args()
         self.dataset = Dataset(epochs=self.args.EPOCHS, batch=self.args.BATCH)
@@ -53,7 +52,6 @@ class StanceDetection(object):
         assert len(data[0]) == len(data[1]) == len(data[2])
 
         # 2. Data follows this order: train, test
-        shuffle(data, seed=123456)
         train_num = int(len(data[0]) * arguments.portion)
         train_data = [d[:train_num] for d in data]
         dev_data = [d[train_num:] for d in data]

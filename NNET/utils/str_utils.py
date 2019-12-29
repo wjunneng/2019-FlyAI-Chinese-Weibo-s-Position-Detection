@@ -1,8 +1,4 @@
 # -*- coding:utf-8 -*-
-import sys
-
-sys.path.append('../')
-
 import os
 import sys
 from pyltp import Segmentor

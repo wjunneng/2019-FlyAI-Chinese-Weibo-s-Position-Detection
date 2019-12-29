@@ -1,19 +1,14 @@
 # -*- coding:utf-8 -*-
-import sys
-
-sys.path.append('../')
-
-import os
 import time
 import torch
 import numpy as np
 from torch.autograd import Variable
 
-from NNET import args
-from NNET.utils.vec_utils import get_mask_matrix, get_padding, sentences_to_idx, get_batch
-from NNET.utils.file_utils import read_file2list, read_file2lol, pickle_to_data
-from NNET.utils.str_utils import seg_sentences
-from NNET.utils.log_utils import log_text_single, log_prf_single
+import args
+from utils.vec_utils import get_mask_matrix, get_padding, sentences_to_idx, get_batch
+from utils.file_utils import read_file2list, read_file2lol, pickle_to_data
+from utils.str_utils import seg_sentences
+from utils.log_utils import log_text_single, log_prf_single
 
 # 判断gpu是否可用
 if torch.cuda.is_available():

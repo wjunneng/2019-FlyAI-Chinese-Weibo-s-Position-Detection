@@ -1,8 +1,7 @@
 # -*- coding:utf-8 -*-
-import os
 import numpy as np
 
-from NNET.utils.file_utils import data_to_pickle, pickle_to_data
+from utils.file_utils import data_to_pickle, pickle_to_data
 
 np.random.seed(123456)
 

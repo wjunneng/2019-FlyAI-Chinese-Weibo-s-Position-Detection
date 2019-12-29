@@ -1,11 +1,7 @@
 # -*- coding:utf-8 -*-
-import sys
-
-sys.path.append('../')
-
 import numpy as np
-from NNET.utils.file_utils import data_to_pickle
-from NNET.utils.vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
+from utils.file_utils import data_to_pickle
+from utils.vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
 
 
 ################################

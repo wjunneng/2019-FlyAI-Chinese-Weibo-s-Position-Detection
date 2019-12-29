@@ -7,7 +7,7 @@ sys.path.append('../')
 # model save dir
 model_dir = 'data/input/model.pt'
 # decide portion to spare for training and validation
-portion = 0.8
+portion = 0.9
 # sgns_300 vector path
 sgns_dir = 'data/input/model/sgns'
 # all of labels
@@ -17,9 +17,9 @@ feat_names = ["xIndexes", "xQuestions", "yLabels"]
 # use the all vocabulary
 big_voc = False
 # max time step of sentence sequence
-sen_max_len = 50
+sen_max_len = 128
 # max time step of sentence sequence
-ask_max_len = 25
+ask_max_len = 32
 
 # ############################### model parameters
 # type of model to use for Stance Project
@@ -33,11 +33,11 @@ nlayers = 1
 # learning rate
 lr = 1e-4
 # dropout rate
-dropout = 0.5
+dropout = 0.2
 # max time step of answer sequence
-ans_len = 50
+ans_len = 128
 # max time step of question sequence
-ask_len = 25
+ask_len = 32
 # number of attention hops for RoomConditional models
 nhops = 3
 

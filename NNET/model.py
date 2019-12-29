@@ -4,10 +4,11 @@ import torch
 import args
 import jieba
 from flyai.model.base import Base
-from NNET.processor import Processor
-from NNET.utils.vec_utils import read_emb
-from NNET.utils.vec_text import make_datasets, load_tvt
-from NNET.utils.model_utils import classify_batch
+
+from processor import Processor
+from utils.vec_utils import read_emb
+from utils.vec_text import make_datasets, load_tvt
+from utils.model_utils import classify_batch
 
 __import__('net', fromlist=["Net"])
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

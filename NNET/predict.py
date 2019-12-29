@@ -3,7 +3,7 @@
 实现模型的调用
 """
 from flyai.dataset import Dataset
-from NNET.model import Model
+from model import Model
 
 data = Dataset()
 model = Model(data)
@@ -11,6 +11,7 @@ model = Model(data)
 # p = model.predict(TARGET='IphoneSE', TEXT='已经等不及想要去看看这款手机了')
 # print(p)
 
+# AGAINST / FAVOR / AGAINST / NONE
 p = model.predict_all(
     [{"TARGET": "深圳禁摩限电",
       "TEXT": "#深圳禁摩限电# 自行车、汽车也同样会引发交通事故——为何单怪他们？（我早就发现：交通的混乱，反映了“交管局”内部的混乱！）必须先严整公安交管局内部！——抓问题的根本！@深圳交警@中国政府网@人民日报"},
