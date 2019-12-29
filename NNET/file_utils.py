@@ -4,7 +4,7 @@ import pandas as pd
 import pickle
 
 import args
-from utils.str_utils import str_to_list, list_to_str
+from str_utils import str_to_list, list_to_str
 
 
 #############################################################

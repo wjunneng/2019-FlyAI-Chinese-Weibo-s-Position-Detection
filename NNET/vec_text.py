@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import numpy as np
-from utils.file_utils import data_to_pickle
-from utils.vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
+from file_utils import data_to_pickle
+from vec_utils import YDataset, sentences_to_idx, sentences_to_idx_small_vocab, label_to_idx
 
 
 ################################

@@ -5,9 +5,9 @@ import time
 import random
 
 import args
-from utils.file_utils import read_file2lol, read_file2list, data_to_pickle, pickle_to_data
-from utils.vec_utils import read_emb
-from utils.vec_text import make_datasets, preload_tvt
+from file_utils import read_file2lol, read_file2list, data_to_pickle, pickle_to_data
+from vec_utils import read_emb
+from vec_text import make_datasets, preload_tvt
 
 np.random.seed(1234567)
 

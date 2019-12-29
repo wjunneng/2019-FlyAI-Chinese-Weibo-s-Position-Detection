@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import numpy as np
 
-from utils.file_utils import data_to_pickle, pickle_to_data
+from file_utils import data_to_pickle, pickle_to_data
 
 np.random.seed(123456)
 

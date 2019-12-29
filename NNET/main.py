@@ -17,10 +17,11 @@ from torch.autograd import Variable
 
 import args as arguments
 from net import Net
-from utils.vec_utils import read_emb
-from utils.vec_text import make_datasets, load_tvt
-from utils.model_utils import load_torch_model, test, classify_batch
+from vec_utils import read_emb
+from vec_text import make_datasets, load_tvt
+from model_utils import load_torch_model, test, classify_batch
 from flyai.dataset import Dataset
+from flyai.utils import remote_helper
 
 torch.manual_seed(arguments.seed)
 
@@ -28,7 +29,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.cuda.manual_seed(arguments.seed)
 
 
-# remote_helper.get_remote_date('https://www.flyai.com/m/sgns.weibo.word.bz2')
+remote_helper.get_remote_date('https://www.flyai.com/m/sgns.weibo.word.bz2')
 
 
 class StanceDetection(object):

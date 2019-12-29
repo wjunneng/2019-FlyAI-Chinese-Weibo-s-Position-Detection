@@ -13,9 +13,8 @@ from progress.bar import Bar
 sys.path.append('../')
 from NNET.net import Net
 import NNET.args as arguments
-from flyai.dataset import Dataset
-from NNET.utils.file_utils import pickle_to_data
-from NNET.utils.model_utils import load_torch_model, train_step, test
+from NNET.file_utils import pickle_to_data
+from NNET.model_utils import load_torch_model, train_step, test
 
 torch.manual_seed(arguments.seed)
 

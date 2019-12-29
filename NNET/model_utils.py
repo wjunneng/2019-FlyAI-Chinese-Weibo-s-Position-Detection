@@ -5,10 +5,9 @@ import numpy as np
 from torch.autograd import Variable
 
 import args
-from utils.vec_utils import get_mask_matrix, get_padding, sentences_to_idx, get_batch
-from utils.file_utils import read_file2list, read_file2lol, pickle_to_data
-from utils.str_utils import seg_sentences
-from utils.log_utils import log_text_single, log_prf_single
+from vec_utils import get_mask_matrix, get_padding, sentences_to_idx, get_batch
+from file_utils import read_file2list, read_file2lol, pickle_to_data
+from log_utils import log_text_single, log_prf_single
 
 # 判断gpu是否可用
 if torch.cuda.is_available():
@@ -23,20 +22,20 @@ torch.cuda.manual_seed(args.seed)
 ###################
 #   load text and labels
 ###################
-def load_test_text(feat_filenames, seged=True):
-    """
-
-    :param feat_filenames: filename of input text features
-    :param seged:
-    :return:
-    """
-    if not seged:
-        test_text = [read_file2list(fn) for fn in feat_filenames]
-        test_text = [seg_sentences(text) for text in test_text]
-    else:
-        test_text = [read_file2lol(fn) for fn in feat_filenames]
-
-    return test_text
+# def load_test_text(feat_filenames, seged=True):
+#     """
+#
+#     :param feat_filenames: filename of input text features
+#     :param seged:
+#     :return:
+#     """
+#     if not seged:
+#         test_text = [read_file2list(fn) for fn in feat_filenames]
+#         test_text = [seg_sentences(text) for text in test_text]
+#     else:
+#         test_text = [read_file2lol(fn) for fn in feat_filenames]
+#
+#     return test_text
 
 
 def load_test_data(feat_filenames, word2idx_filename, max_lens=(50, 25), seged=True):

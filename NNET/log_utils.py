@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
-from utils.eval_utils import count_label, cal_prf, cal_acc
-from utils.model_utils import sentences_to_idx, get_padding
+from eval_utils import count_label, cal_prf, cal_acc
+from model_utils import sentences_to_idx, get_padding
 
 
 def log_prf_single(y_pred, y_true, model_name="Net", data_part="Test"):

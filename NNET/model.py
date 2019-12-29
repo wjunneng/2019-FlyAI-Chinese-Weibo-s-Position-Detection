@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*
 import os
 import torch
-import args
 import jieba
 from flyai.model.base import Base
 
+import args
 from processor import Processor
-from utils.vec_utils import read_emb
-from utils.vec_text import make_datasets, load_tvt
-from utils.model_utils import classify_batch
+from vec_utils import read_emb
+from vec_text import make_datasets, load_tvt
+from model_utils import classify_batch
 
 __import__('net', fromlist=["Net"])
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,7 +42,6 @@ class Model(Base):
                                  features=[answers, answers_seqlen, answers_mask, questions, questions_seqlen,
                                            questions_mask],
                                  max_lens=(args.ans_len, args.ask_len))
-        print(outputs)
         return self.processor.output_y(torch.argmax(outputs[0]).cpu().numpy().tolist())
 
     def predict_all(self, datas):
