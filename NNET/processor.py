@@ -29,8 +29,13 @@ class Processor(Base):
         """
         验证时使用，把模型输出的y转为对应的结果
         """
-        label = []
-        for i in data:
-            label.append(self.label_map[i])
+        label = None
+        if isinstance(data, list):
+            label = []
+            for i in data:
+                label.append(self.label_map[i])
+
+        elif isinstance(data, int):
+            label = self.label_map[data]
 
         return label

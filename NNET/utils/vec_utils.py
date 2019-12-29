@@ -350,11 +350,10 @@ class YDataset(object):
         self.seq_lens = None
         self.mask_matrix = None
         self.num_feature = len(self.features)
-
-        for one_kind_of_feature in self.features:
-            assert len(one_kind_of_feature) == len(self.labels)
-
-        self._num_examples = len(self.labels)
+        if labels is None:
+            self._num_examples = len(list_of_features[0])
+        else:
+            self._num_examples = len(self.labels)
         self._epochs_completed = 0
         self._index_in_epoch = 0
 
@@ -414,7 +413,8 @@ class YDataset(object):
             self.features[i] = self.features[i][perm]
             self.seq_lens[i] = self.seq_lens[i][perm]
             self.mask_matrix[i] = self.mask_matrix[i][perm]
-        self.labels = self.labels[perm]
+        if self.labels is not None:
+            self.labels = self.labels[perm]
 
     def next_batch(self, batch_size, seed=123456):
         """Return the next `batch_size` examples from this data set."""
@@ -433,7 +433,10 @@ class YDataset(object):
         _features = [feat[start:end] for feat in self.features]
         _seq_lens = [seqlen[start:end] for seqlen in self.seq_lens]
         _mask_matrix = [matrix[start:end] for matrix in self.mask_matrix]
-        _labels = self.labels[start:end]
+        if self.labels is None:
+            _labels = None
+        else:
+            _labels = self.labels[start:end]
 
         return _features, _seq_lens, _mask_matrix, _labels
 
@@ -473,6 +476,7 @@ def get_batch(batch_size, total_num, features):
         feature_batch = [feature[idx * batch_size: (idx + 1) * batch_size]
                          for feature in features]
         yield feature_batch
+
     if left > 0:
         feature_batch = [feature[num_batch * batch_size:]
                          for feature in features]

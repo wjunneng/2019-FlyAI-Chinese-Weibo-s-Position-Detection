@@ -36,8 +36,8 @@ class StanceDetection(object):
     def __init__(self, exec_type='train'):
         # 项目的超参
         parser = argparse.ArgumentParser()
-        parser.add_argument("-e", "--EPOCHS", default=10, type=int, help="train epochs")
-        parser.add_argument("-b", "--BATCH", default=8, type=int, help="batch size")
+        parser.add_argument("-e", "--EPOCHS", default=100, type=int, help="train epochs")
+        parser.add_argument("-b", "--BATCH", default=2, type=int, help="batch size")
         self.args = parser.parse_args()
         self.dataset = Dataset(epochs=self.args.EPOCHS, batch=self.args.BATCH)
         self.model_dir = os.path.join(os.getcwd(), arguments.model_dir)
@@ -65,7 +65,8 @@ class StanceDetection(object):
         self.datasets, word2idx, embeddings = make_datasets(vocab=vocab,
                                                             raw_data={'training': train_data, 'validation': dev_data},
                                                             label2idx=label2idx,
-                                                            big_voc=arguments.big_voc, feat_names=arguments.feat_names)
+                                                            big_voc=arguments.big_voc,
+                                                            feat_names=arguments.feat_names)
         self.datasets_train = load_tvt(tvt_set=self.datasets['training'],
                                        max_lens=[arguments.sen_max_len, arguments.ask_max_len],
                                        feat_names=arguments.feat_names)

@@ -170,7 +170,7 @@ def classify_batch(model, features, max_lens=(50, 25)):
     :return:
     """
     [answers, answers_seqlen, answers_mask, questions, questions_seqlen, questions_mask] = features
-    batch_size = len(answers)
+    batch_size = answers.shape[0]
     ans_len, ask_len = max_lens
 
     questions_ = Variable(torch.LongTensor(questions).view(batch_size, ask_len)).to(device)
