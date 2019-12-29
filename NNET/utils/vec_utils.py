@@ -23,7 +23,7 @@ np.random.seed(123456)
 
 ###################
 
-def read_emb_idx(filename, stat_lines=0):
+def read_emb_idx(filename, stat_lines=1):
     """
     read glove, baike, weibo or other word embs trained with gensim
     :param filename: single emb and word file, w/o stat info
@@ -36,13 +36,12 @@ def read_emb_idx(filename, stat_lines=0):
         embeddings = []
         words = []
         for line in f:
-            # print(line)
-            line = line.strip().decode()
-            one = line.split(' ')
+            one = line.strip().decode().split(" ")
             word = one[0].lower()
             emb = [float(i) for i in one[1:]]
             embeddings.append(emb)
             words.append(word)
+
         return embeddings, words
 
 
@@ -79,7 +78,7 @@ def create_vocab(embeddings, words):
     return vocab
 
 
-def read_emb(filename, emb_type=2, stat_lines=0):
+def read_emb(filename, stat_lines=0):
     """
 
     :param filename:
@@ -92,11 +91,7 @@ def read_emb(filename, emb_type=2, stat_lines=0):
 
     :return:
     """
-    embeddings = None
-    words = None
-    type1 = [1, 2, "glove", "baike", "weibo", "zhwiki"]
-    if emb_type in type1:
-        embeddings, words = read_emb_idx(filename, stat_lines)
+    embeddings, words = read_emb_idx(filename, stat_lines)
 
     print("Finish loading embedding %s * * * * * * * * * * * *" % filename)
 
@@ -144,7 +139,6 @@ def sentence_to_idx_small_vocab(sentence, vocab, word2idx, embeddings):
                 embeddings.append(vocab["embeddings"][idx])
             s_index.append(word2idx[word])
         else:
-            print("  1--%s--  " % word)
             word = word.strip("`'._-*")
             if word in vocab["word2idx"]:
                 if word not in word2idx:
@@ -154,7 +148,6 @@ def sentence_to_idx_small_vocab(sentence, vocab, word2idx, embeddings):
                 s_index.append(word2idx[word])
             else:
                 s_index.append(word2idx["_unk"])
-                print("  2--%s--  " % word)
 
     if len(s_index) == 0:
         print(len(sentence), "+++++++++++++++++++++++++++++++++, empty sentence")
@@ -177,7 +170,6 @@ def sentences_to_idx_small_vocab(sentences, vocab, word2idx, embeddings, prompt=
     :param prompt:
     :return:
     """
-    print("-------------begin making " + prompt + " xIndexes-------------")
     sentences_indexes = []
     for sentence in sentences:
         s_index = sentence_to_idx_small_vocab(sentence, vocab, word2idx, embeddings)
@@ -186,7 +178,6 @@ def sentences_to_idx_small_vocab(sentences, vocab, word2idx, embeddings, prompt=
     assert len(word2idx) == len(embeddings)
     assert len(sentences_indexes) == len(sentences)
 
-    print("-------------finish making " + prompt + " xIndexes-------------")
     return sentences_indexes
 
 

@@ -103,9 +103,6 @@ def gen_model_path_by_args(in_dir, model_params):
     model_params = [str(param) for param in model_params]
     model_path = "%s%s" % (in_dir, "_".join(model_params))
 
-    if not os.path.exists(model_path):
-        os.mkdir(model_path)
-
     return model_name, model_path
 
 
@@ -216,7 +213,7 @@ def classify_batches(batch_size, model, features, max_lens=(50, 25)):
     return y_pred, max_indexes, max_probs
 
 
-def test(model, dataset, log_result=True, data_part="test"):
+def test(model, dataset, test_set, log_result=True, batch_size=None):
     """
     1. decide batch_size, batch_num
     2. classify each batch and combine the predictions --> test_batch()
@@ -236,8 +233,6 @@ def test(model, dataset, log_result=True, data_part="test"):
             labels
 
     """
-    test_set = pickle_to_data("./NNET/data/output/features_%s_%s.pkl" % (args.embtype, data_part))
-
     test_len = len(test_set)
     # always
     # test_len = 600
@@ -251,7 +246,6 @@ def test(model, dataset, log_result=True, data_part="test"):
 
     tic = time.time()
 
-    batch_size = 100
     model.eval()
     pred, max_indexes, _ = classify_batches(batch_size, model, features=feats, max_lens=(args.ans_len, args.ask_len))
 
@@ -265,7 +259,7 @@ def test(model, dataset, log_result=True, data_part="test"):
         log_text_single(questions, answers, pred, labels, dataset["idx2word"], max_indexes)
 
     """ 4. log and return prf scores """
-    _, full_model = gen_model_path_by_args("", [args.model, args.nhid, args.ans_len, args.ask_len, args.batch_size,
+    _, full_model = gen_model_path_by_args("", [args.model, args.nhid, args.ans_len, args.ask_len, batch_size,
                                                 args.input])
     eval_result = log_prf_single(y_pred=pred, y_true=labels, model_name=args.model)
     macro_f1, acc = eval_result["macro_f"], eval_result["accuracy"]

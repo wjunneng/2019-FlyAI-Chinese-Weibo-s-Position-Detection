@@ -8,6 +8,7 @@ import torch
 import numpy as np
 import argparse
 import time
+import jieba
 import torch.nn as nn
 import torch.optim as optim
 from progress.bar import Bar
@@ -15,15 +16,19 @@ from torch.autograd import Variable
 
 from NNET.net import Net
 import NNET.args as arguments
-from NNET.utils.file_utils import pickle_to_data
+from NNET.utils.vec_utils import read_emb
+from NNET.utils.vec_text import make_datasets, load_tvt
 from NNET.utils.model_utils import load_torch_model, test, classify_batch
-
+from NNET.utils.vectorize import shuffle
 from flyai.dataset import Dataset
 
 torch.manual_seed(arguments.seed)
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.cuda.manual_seed(arguments.seed)
+
+
+# remote_helper.get_remote_date('https://www.flyai.com/m/sgns.weibo.word.bz2')
 
 
 class StanceDetection(object):
@@ -35,18 +40,48 @@ class StanceDetection(object):
         self.args = parser.parse_args()
         self.dataset = Dataset(epochs=self.args.EPOCHS, batch=self.args.BATCH)
 
+        # 1. Split the data, read into defined format
+        label2idx = dict((arguments.labels[i], i) for i in range(len(arguments.labels)))
+        target_text, stance, _, _ = self.dataset.get_all_data()
+
+        indexes = [" ".join(jieba.cut(i['TARGET'], cut_all=False)) for i in target_text]
+        questions = [" ".join(jieba.cut(i['TEXT'], cut_all=False)) for i in target_text]
+        labels = [i['STANCE'] for i in stance]
+        data = [indexes, questions, labels]
+        assert len(data[0]) == len(data[1]) == len(data[2])
+
+        # 2. Data follows this order: train, test
+        shuffle(data, seed=123456)
+        train_num = int(len(data[0]) * arguments.portion)
+        train_data = [d[:train_num] for d in data]
+        dev_data = [d[train_num:] for d in data]
+
+        # 3. Read the vocab text file and get VOCAB dictionary
+        vocab = read_emb(filename=arguments.sgns_dir, stat_lines=1)
+
+        # 4. Transform text into indexes
+        self.datasets, word2idx, embeddings = make_datasets(vocab=vocab,
+                                                            raw_data={'training': train_data, 'validation': dev_data},
+                                                            label2idx=label2idx,
+                                                            big_voc=arguments.big_voc, feat_names=arguments.feat_names)
+        self.datasets_train = load_tvt(tvt_set=self.datasets['training'],
+                                       max_lens=[arguments.sen_max_len, arguments.ask_max_len],
+                                       feat_names=arguments.feat_names)
+        self.datasets_dev = load_tvt(tvt_set=self.datasets['validation'],
+                                     max_lens=[arguments.sen_max_len, arguments.ask_max_len],
+                                     feat_names=arguments.feat_names)
+
+        idx2word = dict((v, k) for k, v in word2idx.items())
+        self.datasets["word2idx"] = word2idx
+        self.datasets["idx2word"] = idx2word
+
+        self.embeddings = torch.from_numpy(np.asarray(embeddings, dtype=np.float32))
+
         if exec_type == 'train':
-            pass
-        elif exec_type == 'validation':
-            pass
+            self.main()
         else:
-            self.features_data = pickle_to_data(arguments.features_baike_dir)
-            word2idx = pickle_to_data(arguments.word2idx_baike_dir)
-            idx2word = dict((v, k) for k, v in word2idx.items())
-            self.features_data["word2idx"] = word2idx
-            self.features_data["idx2word"] = idx2word
             model = load_torch_model(arguments.model_dir)
-            test(model, self.features_data)
+            test(model=model, dataset=self.datasets, test_set=None)
 
     def main(self):
         """ make sure the folder to save models exist """
@@ -55,18 +90,13 @@ class StanceDetection(object):
 
         """ continue training or not """
         if arguments.proceed:
-            if os.path.exists(arguments.model_dir + "/model.pt"):
-                with open(arguments.model_dir + "/model.pt", "rb") as saved_model:
+            if os.path.exists(arguments.model_dir):
+                with open(arguments.model_dir, "rb") as saved_model:
                     model = torch.load(saved_model)
         else:
-            embeddings = pickle_to_data(arguments.embeddings_baike_dir)
-            # from_numpy
-            emb_np = np.asarray(embeddings, dtype=np.float32)
-            emb = torch.from_numpy(emb_np)
-
             models = {"Net": Net}
-            model = models[arguments.model](embeddings=emb,
-                                            input_dim=emb.size(1),
+            model = models[arguments.model](embeddings=self.embeddings,
+                                            input_dim=self.embeddings.size(1),
                                             hidden_dim=arguments.nhid,
                                             num_layers=arguments.nlayers,
                                             output_dim=arguments.nclass,
@@ -81,29 +111,26 @@ class StanceDetection(object):
         optimizer = optim.Adam(model.parameters(), lr=arguments.lr, weight_decay=5e-5)
         # 损失函数
         criterion = nn.CrossEntropyLoss()
-        # 加载训练集
-        training_set = pickle_to_data(arguments.features_baike_training_dir)
 
         best_f1_test, best_p_valid, best_f1_valid = -np.inf, -np.inf, -np.inf
         epoch_f1_test, epoch_f1_valid, epoch_f1_cur = 0, 0, 0
         cur_f1_test = -np.inf
-        batches_per_epoch = len(training_set) // self.args.BATCH
+        batches_per_epoch = len(self.datasets_train) // self.args.BATCH
         max_train_steps = int(self.args.EPOCHS * batches_per_epoch)
 
         print("--------------\nEpoch 0 begins!")
         bar = Bar("  Processing", max=max_train_steps)
-        print(max_train_steps, self.args.EPOCHS, len(training_set), self.args.BATCH)
+        print(max_train_steps, self.args.EPOCHS, len(self.datasets_train), self.args.BATCH)
 
         for step in range(max_train_steps):
             bar.next()
-            training_batch = training_set.next_batch(self.args.batch_size)
             model.train()
-            # xIndexes, xQuestions, yLabels
+            training_batch = self.datasets_train.next_batch(self.args.BATCH)
             features, seq_lens, mask_matrice, labels = training_batch
             (answers, answers_seqlen, answers_mask), (questions, questions_seqlen, questions_mask) \
                 = zip(features, seq_lens, mask_matrice)
+
             assert self.args.BATCH == len(labels) == len(questions) == len(answers)
-            feats = [answers, answers_seqlen, answers_mask, questions, questions_seqlen, questions_mask]
 
             # Prepare data and prediction
             labels_ = Variable(torch.LongTensor(labels)).to(DEVICE)
@@ -111,8 +138,12 @@ class StanceDetection(object):
             # necessary for Room model
             torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=0.25)
 
+            # zero grad
             model.zero_grad()
-            outputs = classify_batch(model=model, features=feats, max_lens=(arguments.ans_len, arguments.ask_len))
+            outputs = classify_batch(model=model,
+                                     features=[answers, answers_seqlen, answers_mask, questions, questions_seqlen,
+                                               questions_mask],
+                                     max_lens=(arguments.ans_len, arguments.ask_len))
             probs = outputs[0]
             loss = criterion(probs.view(len(labels_), -1), labels_)
 
@@ -122,29 +153,29 @@ class StanceDetection(object):
             # Test after each epoch
             if (step + 1) % batches_per_epoch == 0:
                 tic = time.time()
-                self.features_data = pickle_to_data(arguments.features_baike_dir)
-                word2idx = pickle_to_data(arguments.word2idx_baike_dir)
-                idx2word = dict((v, k) for k, v in word2idx.items())
-                self.features_data["word2idx"] = word2idx
-                self.features_data["idx2word"] = idx2word
-                f1_score, p_score = test(model, log_result=False, dataset=self.features_data, data_part="validation")
+                f1_score, p_score = test(model=model,
+                                         log_result=False,
+                                         dataset=self.datasets,
+                                         test_set=self.datasets_dev,
+                                         batch_size=self.args.BATCH)
+
                 print("\n  Begin to predict the results on Valid")
                 print("  using %.5fs" % (time.time() - tic))
                 print("  ----Old best F1 on Valid is %f on epoch %d" % (best_f1_valid, epoch_f1_valid))
                 print("  ----Old best F1 on Test is %f on epoch %d" % (best_f1_test, epoch_f1_test))
                 print("  ----Cur save F1 on Test is %f on epoch %d" % (cur_f1_test, epoch_f1_valid))
+
                 if f1_score > best_f1_valid:
-                    with open(arguments.model_dir + "/model.pt", 'wb') as to_save:
+                    with open(arguments.model_dir, 'wb') as to_save:
                         torch.save(model, to_save)
                     best_f1_valid = f1_score
                     print("  ----New best F1 on Valid is %f" % f1_score)
-                    epoch_f1_valid = training_set.epochs_completed
-
-                print("--------------\nEpoch %d begins!" % (training_set.epochs_completed + 1))
+                    epoch_f1_valid = self.datasets_train.epochs_completed
+                print("--------------\nEpoch %d begins!" % (self.datasets_train.epochs_completed + 1))
 
         bar.finish()
 
 
 if __name__ == "__main__":
     print("------------------------------")
-    StanceDetection('train').main()
+    StanceDetection('train')

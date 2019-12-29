@@ -1,3 +1,8 @@
+# -*- coding:utf-8 -*-
+import sys
+
+sys.path.append('../')
+
 # -------------------------arg-------------------------
 SOURCES_FILE = '../data/input/dev.csv'
 ids_file = '../data/input/ids.txt'
@@ -11,10 +16,8 @@ in_dir = '../data'
 out_dir = '../data/output'
 # decide portion to spare for training and validation
 portion = 0.8
-# type of word embeddings baike
-emb = "baike"
-# baike_50 vector path
-baike_dir = '../NNET/data/input/baike-50.vec.txt'
+# sgns_300 vector path
+sgns_dir = './NNET/data/input/model/sgns'
 # all of labels
 labels = ['NONE', 'FAVOR', 'AGAINST']
 # feat names
@@ -30,7 +33,7 @@ ask_max_len = 25
 # location of dataset
 input = 'input'
 # model save dir
-model_dir = './NNET/data/model/'
+model_dir = './NNET/data/model/model.pt'
 # features baike dir
 features_baike_dir = './NNET/data/output/features_baike.pkl'
 # features baike training dir
