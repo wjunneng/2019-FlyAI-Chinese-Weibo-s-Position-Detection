@@ -1,8 +1,5 @@
 # -*- coding:utf-8 -*-
-import sys
-
-sys.path.append('../')
-
+import os
 import numpy as np
 
 from NNET.utils.file_utils import data_to_pickle, pickle_to_data

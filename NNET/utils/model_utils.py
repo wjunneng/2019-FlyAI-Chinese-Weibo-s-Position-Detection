@@ -233,10 +233,8 @@ def test(model, dataset, test_set, log_result=True, batch_size=None):
             labels
 
     """
+    # always test_len = 600 / test_len = 1500
     test_len = len(test_set)
-    # always
-    # test_len = 600
-    # test_len = 1500
 
     features, seq_lens, mask_matrice, labels = test_set.next_batch(test_len)
     (answers, answers_seqlen, answers_mask), (questions, questions_seqlen, questions_mask) \
@@ -259,8 +257,7 @@ def test(model, dataset, test_set, log_result=True, batch_size=None):
         log_text_single(questions, answers, pred, labels, dataset["idx2word"], max_indexes)
 
     """ 4. log and return prf scores """
-    _, full_model = gen_model_path_by_args("", [args.model, args.nhid, args.ans_len, args.ask_len, batch_size,
-                                                args.input])
+    _, full_model = gen_model_path_by_args("", [args.model, args.nhid, args.ans_len, args.ask_len, batch_size])
     eval_result = log_prf_single(y_pred=pred, y_true=labels, model_name=args.model)
     macro_f1, acc = eval_result["macro_f"], eval_result["accuracy"]
 

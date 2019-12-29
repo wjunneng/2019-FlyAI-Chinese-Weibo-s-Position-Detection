@@ -1,9 +1,10 @@
 # -*- coding:utf-8 -*-
+import os
 import sys
 
-sys.path.append('../')
+# 将路径设置成都当前目录。
+os.chdir(sys.path[0])
 
-import os
 import torch
 import numpy as np
 import argparse
@@ -14,8 +15,8 @@ import torch.optim as optim
 from progress.bar import Bar
 from torch.autograd import Variable
 
+import args as arguments
 from NNET.net import Net
-import NNET.args as arguments
 from NNET.utils.vec_utils import read_emb
 from NNET.utils.vec_text import make_datasets, load_tvt
 from NNET.utils.model_utils import load_torch_model, test, classify_batch
@@ -39,6 +40,7 @@ class StanceDetection(object):
         parser.add_argument("-b", "--BATCH", default=8, type=int, help="batch size")
         self.args = parser.parse_args()
         self.dataset = Dataset(epochs=self.args.EPOCHS, batch=self.args.BATCH)
+        self.model_dir = os.path.join(os.getcwd(), arguments.model_dir)
 
         # 1. Split the data, read into defined format
         label2idx = dict((arguments.labels[i], i) for i in range(len(arguments.labels)))
@@ -57,7 +59,7 @@ class StanceDetection(object):
         dev_data = [d[train_num:] for d in data]
 
         # 3. Read the vocab text file and get VOCAB dictionary
-        vocab = read_emb(filename=arguments.sgns_dir, stat_lines=1)
+        vocab = read_emb(filename=os.path.join(os.getcwd(), arguments.sgns_dir), stat_lines=1)
 
         # 4. Transform text into indexes
         self.datasets, word2idx, embeddings = make_datasets(vocab=vocab,
@@ -80,18 +82,14 @@ class StanceDetection(object):
         if exec_type == 'train':
             self.main()
         else:
-            model = load_torch_model(arguments.model_dir)
+            model = load_torch_model(self.model_dir)
             test(model=model, dataset=self.datasets, test_set=None)
 
     def main(self):
-        """ make sure the folder to save models exist """
-        if not os.path.exists(arguments.model_dir):
-            os.mkdir(arguments.model_dir)
-
         """ continue training or not """
         if arguments.proceed:
-            if os.path.exists(arguments.model_dir):
-                with open(arguments.model_dir, "rb") as saved_model:
+            if os.path.exists(self.model_dir):
+                with open(self.model_dir, "rb") as saved_model:
                     model = torch.load(saved_model)
         else:
             models = {"Net": Net}
@@ -166,8 +164,9 @@ class StanceDetection(object):
                 print("  ----Cur save F1 on Test is %f on epoch %d" % (cur_f1_test, epoch_f1_valid))
 
                 if f1_score > best_f1_valid:
-                    with open(arguments.model_dir, 'wb') as to_save:
+                    with open(self.model_dir, 'wb') as to_save:
                         torch.save(model, to_save)
+
                     best_f1_valid = f1_score
                     print("  ----New best F1 on Valid is %f" % f1_score)
                     epoch_f1_valid = self.datasets_train.epochs_completed
