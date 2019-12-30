@@ -60,13 +60,18 @@ class Tokenizer(object):
 
 class ABSADataset(Dataset):
     def __init__(self, data_type, fname, tokenizer):
-        self.fname = fname
         self.tokenizer = tokenizer
+
         if data_type == 'csv':
+            self.fname = fname
             self.label2idx = dict((args.labels[i], i) for i in range(len(args.labels)))
             self.data = self._deal_csv()
-        else:
+        elif data_type == 'txt':
+            self.fname = fname
             self.data = self._deal_txt()
+        else:
+            self.fname = fname
+            self.data = self._deal_none()
 
     def _deal_txt(self):
         with open(self.fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
@@ -141,6 +146,28 @@ class ABSADataset(Dataset):
             text_raw_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + text + " [SEP]")
             aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
             polarity = self.label2idx[polarity]
+
+            data = {
+                'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
+                'aspect_bert_indices': aspect_bert_indices,  # aen_bert
+                'polarity': polarity,
+            }
+
+            all_data.append(data)
+
+        return all_data
+
+    def _deal_none(self):
+        (TARGET, TEXT, STANCE) = self.fname
+        all_data = []
+        for i in range(len(TARGET)):
+            aspect = TARGET[i].strip().lower()
+            polarity = STANCE[i]
+            text = TEXT[i].strip().lower()
+
+            text_raw_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + text + " [SEP]")
+            aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
+            polarity = polarity
 
             data = {
                 'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert

@@ -1,129 +1,156 @@
 # -*- coding:utf-8 -*-
-
 import os
 import sys
-import torch
+
+# 将路径设置成都当前目录。
+os.chdir(sys.path[0])
+
+import random
 import numpy as np
+import torch
+import logging
 import argparse
-import time
-import torch.nn as nn
-import torch.optim as optim
-from progress.bar import Bar
+from torch import nn
+from time import strftime, localtime
+from pytorch_transformers import BertModel
+from torch.utils.data import DataLoader, random_split
+from flyai.dataset import Dataset
+from flyai.utils import remote_helper
 
-sys.path.append('../')
-from NNET.net import Net
-import NNET.args as arguments
-from NNET.file_utils import pickle_to_data
-from NNET.model_utils import load_torch_model, train_step, test
+from BERT import args as arguments
+from BERT.data_utils import ABSADataset, Tokenizer4Bert
+from BERT.data_utils import Util
 
-torch.manual_seed(arguments.seed)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
-# 项目的超参
-parser = argparse.ArgumentParser()
-parser.add_argument("-e", "--EPOCHS", default=10, type=int, help="train epochs")
-parser.add_argument("-b", "--BATCH", default=32, type=int, help="batch size")
-args = parser.parse_args()
-
-# 判断gpu是否可用
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu'
-device = torch.device(device)
+remote_helper.get_remote_date("https://www.flyai.com/m/chinese_base.zip")
 
 
-# dataset = Dataset(epochs=args.EPOCHS, batch=args.BATCH)
+class Instructor(object):
+    def __init__(self, arguments):
+        # 项目的超参
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-e", "--EPOCHS", default=50, type=int, help="train epochs")
+        parser.add_argument("-b", "--BATCH", default=2, type=int, help="batch size")
+        self.args = parser.parse_args()
+        self.arguments = arguments
+        self.dataset = Dataset(epochs=self.args.EPOCHS, batch=self.args.BATCH, val_batch=self.args.BATCH)
 
-
-def main():
-    # 2. load dataset
-    dataset = pickle_to_data(arguments.features_baike_dir)
-    word2idx = pickle_to_data(arguments.word2idx_baike_dir)
-    idx2word = dict((v, k) for k, v in word2idx.items())
-    dataset["word2idx"] = word2idx
-    dataset["idx2word"] = idx2word
-
-    # 3. test, proceed, train
-    if arguments.is_test:
-        model = load_torch_model(arguments.model_dir, use_cuda=arguments.cuda)
-        test(model, dataset)
-
-    else:
-        """ make sure the folder to save models exist """
-        if not os.path.exists(arguments.model_dir):
-            os.mkdir(arguments.model_dir)
-
-        """ continue training or not """
-        if arguments.proceed:
-            if os.path.exists(arguments.model_dir + "/model.pt"):
-                with open(arguments.model_dir + "/model.pt", "rb") as saved_model:
-                    model = torch.load(saved_model)
+        if 'bert' in self.arguments.model_name:
+            self.tokenizer = Tokenizer4Bert(max_seq_len=self.arguments.max_seq_len,
+                                            pretrained_bert_name=self.arguments.pretrained_bert_name)
+            bert = BertModel.from_pretrained(pretrained_model_name_or_path=self.arguments.pretrained_bert_name)
+            self.model = self.arguments.model_class(bert, self.arguments).to(self.arguments.device)
         else:
-            embeddings = pickle_to_data(arguments.embeddings_baike_dir)
-            # from_numpy
-            emb_np = np.asarray(embeddings, dtype=np.float32)
-            emb = torch.from_numpy(emb_np)
+            self.tokenizer = Util.bulid_tokenizer(
+                fnames=[self.arguments.dataset_file['train'], self.arguments.dataset_file['test']],
+                max_seq_len=self.arguments.max_seq_len,
+                dat_fname='{0}_tokenizer.dat'.format(self.arguments.dataset)
+            )
+            embedding_matrix = Util.build_embedding_matrix(
+                word2idx=self.tokenizer.word2idx,
+                embed_dim=self.arguments.embed_dim,
+                dat_fname='{0}_{1}_embedding_matrix.dat'.format(str(self.arguments.embed_dim), self.arguments.dataset)
+            )
+            self.model = self.arguments.model_class(embedding_matrix, self.arguments).to(self.arguments.device)
 
-            models = {"Net": Net}
-            model = models[arguments.model](embeddings=emb,
-                                            input_dim=emb.size(1),
-                                            hidden_dim=arguments.nhid,
-                                            num_layers=arguments.nlayers,
-                                            output_dim=arguments.nclass,
-                                            max_step=[arguments.ans_len, arguments.ask_len],
-                                            dropout=arguments.dropout)
-            if arguments.model in ["Net"]:
-                model.nhops = arguments.nhops
+        if self.arguments.device.type == 'cuda':
+            logger.info(
+                'cuda memory allocated: {}'.format(torch.cuda.memory_allocated(device=self.arguments.device.index)))
 
-        if torch.cuda.is_available():
-            if not arguments.cuda:
-                print("Waring: You have a CUDA device, so you should probably run with --cuda")
-            else:
-                torch.cuda.manual_seed(arguments.seed)
-                model.cuda(device=device)
+        Util.print_args(model=self.model, logger=logger, args=self.arguments)
 
-        # train
-        optimizer = optim.Adam(model.parameters(), lr=arguments.lr, weight_decay=5e-5)
+    def run(self):
+        # loss and optimizer
         criterion = nn.CrossEntropyLoss()
+        _params = filter(lambda x: x.requires_grad, self.model.parameters())
+        optimizer = self.arguments.optimizer(_params, lr=self.arguments.learning_rate,
+                                             weight_decay=self.arguments.l2reg)
+        Util.reset_params(model=self.model, args=self.arguments)
+        # 训练
+        max_val_acc = 0
+        max_val_f1 = 0
+        global_step = 0
+        best_model_path = None
+        for epoch in range(self.args.EPOCHS):
+            logger.info('>' * 100)
+            logger.info('epoch: {}'.format(epoch))
+            n_correct, n_total, loss_total = 0, 0, 0
+            # switch model to training mode
+            self.model.train()
+            for step in range(self.dataset.get_step() // self.args.EPOCHS):
+                (target_train, text_train), stance_train = self.dataset.next_train_batch()
 
-        training_set = pickle_to_data(arguments.features_baike_training_dir)
+                trainset = ABSADataset(data_type=None, fname=(target_train, text_train, stance_train),
+                                       tokenizer=self.tokenizer)
+                trainset, _ = random_split(trainset, (len(trainset), 0))
+                trainset_loader = DataLoader(dataset=trainset, batch_size=self.args.BATCH, shuffle=True)
+                for i_batch, sample_batched in enumerate(trainset_loader):
+                    global_step += 1
+                    # clear gradient accumulators
+                    optimizer.zero_grad()
 
-        best_f1_test, best_p_valid, best_f1_valid = -np.inf, -np.inf, -np.inf
-        epoch_f1_test, epoch_f1_valid, epoch_f1_cur = 0, 0, 0
-        cur_f1_test = -np.inf
-        batches_per_epoch = len(training_set) // arguments.batch_size
-        max_train_steps = int(arguments.epochs * batches_per_epoch)
+                    inputs = [sample_batched[col].to(self.arguments.device) for col in self.arguments.inputs_cols]
+                    outputs = self.model(inputs)
+                    targets = sample_batched['polarity'].to(self.arguments.device)
 
-        print("--------------\nEpoch 0 begins!")
-        bar = Bar("  Processing", max=max_train_steps)
-        print(max_train_steps, arguments.epochs, len(training_set), arguments.batch_size)
-        for step in range(max_train_steps):
-            bar.next()
-            training_batch = training_set.next_batch(arguments.batch_size)
-            # xIndexes, xQuestions, yLabels
-            train_step(model, training_batch, optimizer, criterion)
+                    loss = criterion(outputs, targets)
+                    loss.backward()
+                    optimizer.step()
 
-            # Test after each epoch
-            if (step + 1) % batches_per_epoch == 0:
-                tic = time.time()
-                f1_score, p_score = test(model, log_result=False, dataset=dataset, data_part="validation")
-                print("\n  Begin to predict the results on Valid")
-                print("  using %.5fs" % (time.time() - tic))
-                print("  ----Old best F1 on Valid is %f on epoch %d" % (best_f1_valid, epoch_f1_valid))
-                print("  ----Old best F1 on Test is %f on epoch %d" % (best_f1_test, epoch_f1_test))
-                print("  ----Cur save F1 on Test is %f on epoch %d" % (cur_f1_test, epoch_f1_valid))
-                if f1_score > best_f1_valid:
-                    with open(arguments.model_dir + "/model.pt", 'wb') as to_save:
-                        torch.save(model, to_save)
-                    best_f1_valid = f1_score
-                    print("  ----New best F1 on Valid is %f" % f1_score)
-                    epoch_f1_valid = training_set.epochs_completed
+                    n_correct += (torch.argmax(outputs, -1) == targets).sum().item()
+                    n_total += len(outputs)
+                    loss_total += loss.item() * len(outputs)
+                    if global_step % self.arguments.log_step == 0:
+                        train_acc = n_correct / n_total
+                        train_loss = loss_total / n_total
+                        logger.info('loss: {:.4f}, acc: {:.4f}'.format(train_loss, train_acc))
 
-                print("--------------\nEpoch %d begins!" % (training_set.epochs_completed + 1))
+            (target_val, text_val), stance_train = self.dataset.next_validation_batch()
+            valset = ABSADataset(data_type=None, fname=(target_val, text_val, stance_train), tokenizer=self.tokenizer)
+            valset, _ = random_split(valset, (len(valset), 0))
+            valset_loader = DataLoader(dataset=valset, batch_size=self.args.BATCH, shuffle=True)
 
-        bar.finish()
+            val_acc, val_f1 = Util.evaluate_acc_f1(model=self.model, args=self.arguments, data_loader=valset_loader)
+            logger.info('> val_acc: {:.4f}, val_f1: {:.4f}'.format(val_acc, val_f1))
+            if val_acc > max_val_acc:
+                max_val_acc = val_acc
+                if not os.path.exists('state_dict'):
+                    os.mkdir('state_dict')
+                best_model_path = 'state_dict/{0}_{1}_val_acc{2}'.format(self.arguments.model_name,
+                                                                         self.arguments.dataset,
+                                                                         round(val_acc, 4))
+                torch.save(self.model.state_dict(), best_model_path)
+                logger.info('>> saved: {}'.format(best_model_path))
+            if val_f1 > max_val_f1:
+                max_val_f1 = val_f1
+
+        logger.info('> max_val_acc: {0} max_val_f1: {1}'.format(max_val_acc, max_val_f1))
+
+        logger.info('> train save model path: {}'.format(best_model_path))
 
 
-if __name__ == "__main__":
-    print("------------------------------")
-    main()
+if __name__ == '__main__':
+    if arguments.seed is not None:
+        random.seed(arguments.seed)
+        np.random.seed(arguments.seed)
+        torch.manual_seed(arguments.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    arguments.model_class = arguments.model_classes[arguments.model_name]
+    arguments.dataset_file = arguments.dataset_files[arguments.dataset]
+    arguments.inputs_cols = arguments.input_colses[arguments.model_name]
+    arguments.initializer = arguments.initializers[arguments.initializer]
+    arguments.optimizer = arguments.optimizers[arguments.optimizer]
+    arguments.device = torch.device(
+        'cuda:0' if torch.cuda.is_available() else 'cpu') if arguments.device is None else torch.device(
+        arguments.device)
+
+    log_file = '{}-{}-{}.log'.format(arguments.model_name, arguments.dataset, strftime('%y%m%d-%H%M', localtime()))
+    logger.addHandler(logging.FileHandler(log_file))
+
+    instructor = Instructor(arguments)
+    instructor.run()

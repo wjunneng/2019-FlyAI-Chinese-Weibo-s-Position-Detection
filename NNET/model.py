@@ -43,8 +43,6 @@ class Model(Base):
                                            questions_mask],
                                  max_lens=(args.ans_len, args.ask_len))
 
-        # return self.processor.output_y(torch.argmax(outputs[0]).cpu().numpy().tolist())
-
         return torch.argmax(outputs[0]).cpu().numpy().tolist()
 
     def predict_all(self, datas):

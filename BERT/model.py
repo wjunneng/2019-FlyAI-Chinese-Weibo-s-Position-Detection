@@ -1,60 +1,60 @@
 # -*- coding: utf-8 -*
-import numpy
 import os
 import torch
+import jieba
 from flyai.model.base import Base
 
-from NNET.path import MODEL_PATH
+import args
+from processor import Processor
+from vec_utils import read_emb
+from vec_text import make_datasets, load_tvt
+from model_utils import classify_batch
 
 __import__('net', fromlist=["Net"])
-
-TORCH_MODEL_NAME = "model.pkl"
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Model(Base):
     def __init__(self, data):
+        self.net = None
         self.data = data
-        self.net_path = os.path.join(MODEL_PATH, TORCH_MODEL_NAME)
-        if os.path.exists(self.net_path):
-            self.net = torch.load(self.net_path)
+        self.model_dir = os.path.join(os.getcwd(), args.model_dir)
+        self.vocab = read_emb(filename=os.path.join(os.getcwd(), args.sgns_dir), stat_lines=1)
+        self.processor = Processor()
 
     def predict(self, **data):
         if self.net is None:
-            self.net = torch.load(self.net_path)
-        x_data = self.data.predict_data(**data)
-        x_data = torch.from_numpy(x_data)
-        outputs = self.net(x_data)
-        prediction = outputs.data.numpy()
-        prediction = self.data.to_categorys(prediction)
-        return prediction
+            self.net = torch.load(self.model_dir)
+        TARGET, TEXT = self.data.predict_data(**data)
+        indexes = " ".join(jieba.cut(TARGET[0], cut_all=False))
+        questions = " ".join(jieba.cut(TEXT[0], cut_all=False))
+        self.datasets, word2idx, embeddings = make_datasets(vocab=self.vocab,
+                                                            raw_data={'prediction': [[indexes], [questions]]},
+                                                            label2idx=None,
+                                                            big_voc=args.big_voc)
+        self.datasets_prediction = load_tvt(tvt_set=self.datasets['prediction'],
+                                            max_lens=[args.ans_len, args.ask_len])
+        features, seq_lens, mask_matrice, _ = self.datasets_prediction.next_batch(batch_size=1)
+        (answers, answers_seqlen, answers_mask), (questions, questions_seqlen, questions_mask) \
+            = zip(features, seq_lens, mask_matrice)
+
+        outputs = classify_batch(model=self.net,
+                                 features=[answers, answers_seqlen, answers_mask, questions, questions_seqlen,
+                                           questions_mask],
+                                 max_lens=(args.ans_len, args.ask_len))
+
+        return torch.argmax(outputs[0]).cpu().numpy().tolist()
 
     def predict_all(self, datas):
-        if self.net is None:
-            self.net = torch.load(self.net_path)
+        """
+        预测所有的数据
+        :param datas:
+        :return:
+        """
         labels = []
         for data in datas:
-            x_data = self.data.predict_data(**data)
-            x_data = torch.from_numpy(x_data)
-            outputs = self.net(x_data)
-            prediction = outputs.data.numpy()
-            prediction = self.data.to_categorys(prediction)
-            labels.append(prediction)
+            predicts = self.predict(TARGET=data['TARGET'], TEXT=data['TEXT'])
+
+            labels.append(predicts)
+
         return labels
-
-    def batch_iter(self, x, y, batch_size=128):
-        """生成批次数据"""
-        data_len = len(x)
-        num_batch = int((data_len - 1) / batch_size) + 1
-
-        indices = numpy.random.permutation(numpy.arange(data_len))
-        x_shuffle = x[indices]
-        y_shuffle = y[indices]
-
-        for i in range(num_batch):
-            start_id = i * batch_size
-            end_id = min((i + 1) * batch_size, data_len)
-            yield x_shuffle[start_id:end_id], y_shuffle[start_id:end_id]
-
-    def save_model(self, network, path, name=TORCH_MODEL_NAME, overwrite=False):
-        super().save_model(network, path, name, overwrite)
-        torch.save(network, os.path.join(path, name))

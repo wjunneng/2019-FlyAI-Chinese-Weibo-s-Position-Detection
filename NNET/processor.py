@@ -17,12 +17,6 @@ class Processor(Base):
         """
         参数为csv中作为输入y的一条数据，该方法会被Dataset多次调用
         """
-        # if STANCE == 'NONE':
-        #     return 0
-        # elif STANCE == 'FAVOR':
-        #     return 1
-        # elif STANCE == 'AGAINST':
-        #     return 2
         return STANCE
 
     def output_y(self, data):

@@ -13,10 +13,6 @@ labels = ['NONE', 'FAVOR', 'AGAINST']
 
 # 模型名称
 model_name = 'aen_bert'
-# try larger number for non-BERT models
-num_epoch = 2
-# try 16, 32, 64 for BERT models
-batch_size = 2
 # 优化算法
 optimizer = 'adam'
 # 初始化方式
@@ -36,7 +32,7 @@ hidden_dim = 300
 # bert 维度
 bert_dim = 768
 # default='bert-base-uncased'
-pretrained_bert_name = '/home/wjunneng/Ubuntu/2019-FlyAI-Chinese-Weibo-s-Position-Detection/BERT/pretrained_model'
+pretrained_bert_name = '../data/input/model'
 # 序例最大的长度
 max_seq_len = 128
 # 极性的维度
