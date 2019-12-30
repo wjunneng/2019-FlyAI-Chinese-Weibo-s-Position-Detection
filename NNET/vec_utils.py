@@ -380,8 +380,6 @@ class YDataset(object):
         all_seq_lens = []
         for i in range(len(self.features)):
             padded_feature, seq_len = get_padding(self.features[i], max_len=self.pad_max_lens[i])
-            # print(padded_feature)
-            # print(seq_len)
             all_features.append(padded_feature)
             all_seq_lens.append(seq_len)
         self.seq_lens = all_seq_lens
@@ -392,7 +390,6 @@ class YDataset(object):
         for i in range(len(self.seq_lens)):
             mask_matrix = get_mask_matrix(self.seq_lens[i], max_len=self.pad_max_lens[i])
             all_mask_matrix.append(mask_matrix)
-            # print(mask_matrix)
         self.mask_matrix = all_mask_matrix
 
     def _shuffle(self, seed):
@@ -407,7 +404,8 @@ class YDataset(object):
         # shuffle([self.labels], seed=seed)
 
         perm = np.arange(self._num_examples)
-        np.random.shuffle(perm)  # non-reproducible
+        # non-reproducible
+        np.random.shuffle(perm)
         for i in range(self.num_feature):
             self.features[i] = self.features[i][perm]
             self.seq_lens[i] = self.seq_lens[i][perm]

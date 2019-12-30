@@ -16,10 +16,6 @@ labels = ['NONE', 'FAVOR', 'AGAINST']
 feat_names = ["xIndexes", "xQuestions", "yLabels"]
 # use the all vocabulary
 big_voc = False
-# max time step of sentence sequence
-sen_max_len = 128
-# max time step of sentence sequence
-ask_max_len = 32
 
 # ############################### model parameters
 # type of model to use for Stance Project
@@ -31,11 +27,11 @@ nhid = 50
 # number of layers of LSTM
 nlayers = 1
 # learning rate
-lr = 1e-4
+lr = 1e-3
 # dropout rate
 dropout = 0.2
 # max time step of answer sequence
-ans_len = 128
+ans_len = 160
 # max time step of question sequence
 ask_len = 32
 # number of attention hops for RoomConditional models

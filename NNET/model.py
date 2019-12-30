@@ -33,7 +33,7 @@ class Model(Base):
                                                             label2idx=None,
                                                             big_voc=args.big_voc)
         self.datasets_prediction = load_tvt(tvt_set=self.datasets['prediction'],
-                                            max_lens=[args.sen_max_len, args.ask_max_len])
+                                            max_lens=[args.ans_len, args.ask_len])
         features, seq_lens, mask_matrice, _ = self.datasets_prediction.next_batch(batch_size=1)
         (answers, answers_seqlen, answers_mask), (questions, questions_seqlen, questions_mask) \
             = zip(features, seq_lens, mask_matrice)
@@ -42,7 +42,10 @@ class Model(Base):
                                  features=[answers, answers_seqlen, answers_mask, questions, questions_seqlen,
                                            questions_mask],
                                  max_lens=(args.ans_len, args.ask_len))
-        return self.processor.output_y(torch.argmax(outputs[0]).cpu().numpy().tolist())
+
+        # return self.processor.output_y(torch.argmax(outputs[0]).cpu().numpy().tolist())
+
+        return torch.argmax(outputs[0]).cpu().numpy().tolist()
 
     def predict_all(self, datas):
         """

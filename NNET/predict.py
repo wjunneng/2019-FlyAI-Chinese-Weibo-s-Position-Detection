@@ -11,6 +11,7 @@ model = Model(data)
 # p = model.predict(TARGET='IphoneSE', TEXT='已经等不及想要去看看这款手机了')
 # print(p)
 
+# 'NONE', 'FAVOR', 'AGAINST'
 # AGAINST / FAVOR / AGAINST / NONE
 p = model.predict_all(
     [{"TARGET": "深圳禁摩限电",

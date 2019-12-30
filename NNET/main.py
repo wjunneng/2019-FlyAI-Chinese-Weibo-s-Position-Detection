@@ -46,8 +46,8 @@ class StanceDetection(object):
         label2idx = dict((arguments.labels[i], i) for i in range(len(arguments.labels)))
         target_text, stance, _, _ = self.dataset.get_all_data()
 
-        indexes = [" ".join(jieba.cut(i['TARGET'], cut_all=False)) for i in target_text]
-        questions = [" ".join(jieba.cut(i['TEXT'], cut_all=False)) for i in target_text]
+        indexes = [" ".join(jieba.cut(i['TARGET'].lower(), cut_all=False)) for i in target_text]
+        questions = [" ".join(jieba.cut(i['TEXT'].lower(), cut_all=False)) for i in target_text]
         labels = [i['STANCE'] for i in stance]
         data = [indexes, questions, labels]
         assert len(data[0]) == len(data[1]) == len(data[2])
@@ -67,10 +67,10 @@ class StanceDetection(object):
                                                             big_voc=arguments.big_voc,
                                                             feat_names=arguments.feat_names)
         self.datasets_train = load_tvt(tvt_set=self.datasets['training'],
-                                       max_lens=[arguments.sen_max_len, arguments.ask_max_len],
+                                       max_lens=[arguments.ans_len, arguments.ask_len],
                                        feat_names=arguments.feat_names)
         self.datasets_dev = load_tvt(tvt_set=self.datasets['validation'],
-                                     max_lens=[arguments.sen_max_len, arguments.ask_max_len],
+                                     max_lens=[arguments.ans_len, arguments.ask_len],
                                      feat_names=arguments.feat_names)
 
         idx2word = dict((v, k) for k, v in word2idx.items())
@@ -112,7 +112,6 @@ class StanceDetection(object):
 
         best_f1_test, best_p_valid, best_f1_valid = -np.inf, -np.inf, -np.inf
         epoch_f1_test, epoch_f1_valid, epoch_f1_cur = 0, 0, 0
-        cur_f1_test = -np.inf
         batches_per_epoch = len(self.datasets_train) // self.args.BATCH
         max_train_steps = int(self.args.EPOCHS * batches_per_epoch)
 
@@ -122,7 +121,6 @@ class StanceDetection(object):
 
         for step in range(max_train_steps):
             bar.next()
-            model.train()
             training_batch = self.datasets_train.next_batch(self.args.BATCH)
             features, seq_lens, mask_matrice, labels = training_batch
             (answers, answers_seqlen, answers_mask), (questions, questions_seqlen, questions_mask) \
@@ -137,13 +135,13 @@ class StanceDetection(object):
             torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=0.25)
 
             # zero grad
+            model.train()
             model.zero_grad()
             outputs = classify_batch(model=model,
                                      features=[answers, answers_seqlen, answers_mask, questions, questions_seqlen,
                                                questions_mask],
                                      max_lens=(arguments.ans_len, arguments.ask_len))
-            probs = outputs[0]
-            loss = criterion(probs.view(len(labels_), -1), labels_)
+            loss = criterion(outputs[0].view(len(labels_), -1), labels_)
 
             loss.backward()
             optimizer.step()
@@ -161,7 +159,6 @@ class StanceDetection(object):
                 print("  using %.5fs" % (time.time() - tic))
                 print("  ----Old best F1 on Valid is %f on epoch %d" % (best_f1_valid, epoch_f1_valid))
                 print("  ----Old best F1 on Test is %f on epoch %d" % (best_f1_test, epoch_f1_test))
-                print("  ----Cur save F1 on Test is %f on epoch %d" % (cur_f1_test, epoch_f1_valid))
 
                 if f1_score > best_f1_valid:
                     with open(self.model_dir, 'wb') as to_save:

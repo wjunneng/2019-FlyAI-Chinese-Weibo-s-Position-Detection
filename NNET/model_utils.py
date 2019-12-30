@@ -8,6 +8,7 @@ import args
 from vec_utils import get_mask_matrix, get_padding, sentences_to_idx, get_batch
 from file_utils import read_file2list, read_file2lol, pickle_to_data
 from log_utils import log_text_single, log_prf_single
+# from str_utils import seg_sentences
 
 # 判断gpu是否可用
 if torch.cuda.is_available():
@@ -38,39 +39,39 @@ torch.cuda.manual_seed(args.seed)
 #     return test_text
 
 
-def load_test_data(feat_filenames, word2idx_filename, max_lens=(50, 25), seged=True):
-    """
-    Load data into vectors:
-        1. read text and seg text
-        2. read word2idx file
-        3. sentence to idx: padding,  seq_len, mask matrix
-    :param feat_filenames: list, question and answer file name
-    :param word2idx_filename: word2idx
-    :param max_lens: max length of each feature
-    :param seged:
-    :return:
-    """
-    # 1.
-    assert len(feat_filenames) == len(max_lens)
-
-    if not seged:
-        test_text = [read_file2list(fn) for fn in feat_filenames]
-        test_text = [seg_sentences(text) for text in test_text]
-    else:
-        test_text = [read_file2lol(fn) for fn in feat_filenames]
-
-    # 2.
-    word2idx = pickle_to_data(word2idx_filename)
-
-    # 3.
-    test_data = []
-    for text, ml in zip(test_text, max_lens):
-        text = sentences_to_idx(text, word2idx)
-        text, text_seqlen = get_padding(text, max_len=ml)
-        text_mask = get_mask_matrix(text_seqlen, max_len=ml)
-        test_data.extend([text, text_seqlen, text_mask])
-
-    return test_data
+# def load_test_data(feat_filenames, word2idx_filename, max_lens=(50, 25), seged=True):
+#     """
+#     Load data into vectors:
+#         1. read text and seg text
+#         2. read word2idx file
+#         3. sentence to idx: padding,  seq_len, mask matrix
+#     :param feat_filenames: list, question and answer file name
+#     :param word2idx_filename: word2idx
+#     :param max_lens: max length of each feature
+#     :param seged:
+#     :return:
+#     """
+#     # 1.
+#     assert len(feat_filenames) == len(max_lens)
+#
+#     if not seged:
+#         test_text = [read_file2list(fn) for fn in feat_filenames]
+#         test_text = [seg_sentences(text) for text in test_text]
+#     else:
+#         test_text = [read_file2lol(fn) for fn in feat_filenames]
+#
+#     # 2.
+#     word2idx = pickle_to_data(word2idx_filename)
+#
+#     # 3.
+#     test_data = []
+#     for text, ml in zip(test_text, max_lens):
+#         text = sentences_to_idx(text, word2idx)
+#         text, text_seqlen = get_padding(text, max_len=ml)
+#         text_mask = get_mask_matrix(text_seqlen, max_len=ml)
+#         test_data.extend([text, text_seqlen, text_mask])
+#
+#     return test_data
 
 
 def load_test_label(label_filename, label2idx=None):
