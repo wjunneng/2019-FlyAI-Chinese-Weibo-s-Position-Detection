@@ -10,9 +10,8 @@ import torch
 import pickle
 import pandas as pd
 from torch.utils.data import Dataset
-from pytorch_transformers import BertTokenizer
+from pytorch_transformers import BertTokenizer, BertModel
 from sklearn.metrics import f1_score
-from pytorch_transformers import BertModel
 
 import args
 
