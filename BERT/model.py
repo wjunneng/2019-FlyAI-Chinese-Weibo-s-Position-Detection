@@ -16,6 +16,7 @@ class Model(Base):
         self.net = None
         self.data = data
         self.args = args
+        self.idx2label = dict((i, args.labels[i]) for i in range(len(args.labels)))
 
     def predict(self, **data):
         if self.net is None:
@@ -37,8 +38,10 @@ class Model(Base):
         for i_batch, sample_batched in enumerate(predict_loader):
             inputs = [sample_batched[col].to(self.args.device) for col in self.args.input_colses[self.args.model_name]]
             outputs = self.net(inputs)
+        outputs = torch.argmax(outputs).numpy().tolist()
 
-        return torch.argmax(outputs).numpy().tolist()
+        print(' [{}],     {},        {}'.format(self.idx2label[outputs], TARGET[0], TEXT[0]))
+        return outputs
 
     def predict_all(self, datas):
         """

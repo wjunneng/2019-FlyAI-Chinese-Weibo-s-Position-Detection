@@ -35,7 +35,7 @@ class Instructor(object):
     def __init__(self, arguments):
         # 项目的超参
         parser = argparse.ArgumentParser()
-        parser.add_argument("-e", "--EPOCHS", default=50, type=int, help="train epochs")
+        parser.add_argument("-e", "--EPOCHS", default=5, type=int, help="train epochs")
         parser.add_argument("-b", "--BATCH", default=2, type=int, help="batch size")
         self.args = parser.parse_args()
         self.arguments = arguments
@@ -135,8 +135,26 @@ class Instructor(object):
             if val_f1 > max_val_f1:
                 max_val_f1 = val_f1
 
-        logger.info('> max_val_acc: {0} max_val_f1: {1}'.format(max_val_acc, max_val_f1))
+        for epoch in range(1):
+            # switch model to training mode
+            self.model.train()
+            (target_val, text_val), stance_train = self.dataset.next_validation_batch()
+            valset = ABSADataset(data_type=None, fname=(target_val, text_val, stance_train), tokenizer=self.tokenizer)
+            valset, _ = random_split(valset, (len(valset), 0))
+            valset_loader = DataLoader(dataset=valset, batch_size=self.args.BATCH, shuffle=True)
+            for i_batch, sample_batched in enumerate(valset_loader):
+                global_step += 1
+                # clear gradient accumulators
+                optimizer.zero_grad()
+                inputs = [sample_batched[col].to(self.arguments.device) for col in self.arguments.inputs_cols]
+                outputs = self.model(inputs)
+                targets = torch.tensor(sample_batched['polarity']).to(self.arguments.device)
 
+                loss = criterion(outputs, targets)
+                loss.backward()
+                optimizer.step()
+
+        logger.info('> max_val_acc: {0} max_val_f1: {1}'.format(max_val_acc, max_val_f1))
         logger.info('> train save model path: {}'.format(best_model_path))
 
 
