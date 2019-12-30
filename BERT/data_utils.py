@@ -14,7 +14,7 @@ from pytorch_transformers import BertTokenizer
 from sklearn.metrics import f1_score
 from pytorch_transformers import BertModel
 
-from BERT import args
+import args
 
 
 class Tokenizer4Bert(object):
@@ -167,18 +167,26 @@ class ABSADataset(Dataset):
         all_data = []
         for i in range(len(TARGET)):
             aspect = TARGET[i].strip().lower()
-            polarity = STANCE[i]
             text = TEXT[i].strip().lower()
 
             text_raw_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + text + " [SEP]")
             aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
-            polarity = self.label2idx[polarity]
 
-            data = {
-                'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
-                'aspect_bert_indices': aspect_bert_indices,  # aen_bert
-                'polarity': polarity,
-            }
+            if STANCE is None:
+                data = {
+                    'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
+                    'aspect_bert_indices': aspect_bert_indices,  # aen_bert
+                }
+
+            else:
+                polarity = STANCE[i]
+                polarity = self.label2idx[polarity]
+
+                data = {
+                    'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
+                    'aspect_bert_indices': aspect_bert_indices,  # aen_bert
+                    'polarity': polarity,
+                }
 
             all_data.append(data)
 
@@ -311,16 +319,13 @@ class Util(object):
     @staticmethod
     def save_model(model, output_dir):
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
         output_model_file = os.path.join(output_dir, "pytorch_model.bin")
         torch.save(model_to_save.state_dict(), output_model_file)
 
     @staticmethod
-    def load_model(output_dir):
+    def load_model(model, output_dir):
         # Load a trained model that you have fine-tuned
         output_model_file = os.path.join(output_dir, "pytorch_model.bin")
-        model_state_dict = torch.load(output_model_file)
-        model = Net.from_pretrained(args.bert_model, state_dict=model_state_dict, num_tag=len(args.labels))
+        model.load_state_dict(torch.load(output_model_file))
 
         return model

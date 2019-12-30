@@ -1,6 +1,6 @@
 # -------------------------arg-------------------------
 import torch
-from BERT.models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet_LF, AOA, MGAN, LCF_BERT, BERT_SPC
+from models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet_LF, AOA, MGAN, LCF_BERT, BERT_SPC
 from net import Net
 
 # ############################### model parameters
@@ -14,7 +14,7 @@ labels = ['NONE', 'FAVOR', 'AGAINST']
 # default='bert-base-uncased'
 pretrained_bert_name = 'data/input/model'
 # 最优模型保存路径
-best_model_path = 'data/input/model.bin'
+best_model_path = 'data/input'
 # log path
 log_path = 'log'
 # 模型名称

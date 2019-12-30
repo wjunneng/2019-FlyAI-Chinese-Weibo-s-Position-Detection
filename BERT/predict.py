@@ -13,6 +13,7 @@ model = Model(data)
 
 # 'NONE', 'FAVOR', 'AGAINST'
 # AGAINST / FAVOR / AGAINST / NONE
+# 2 / 1/ 2/ 0
 p = model.predict_all(
     [{"TARGET": "深圳禁摩限电",
       "TEXT": "#深圳禁摩限电# 自行车、汽车也同样会引发交通事故——为何单怪他们？（我早就发现：交通的混乱，反映了“交管局”内部的混乱！）必须先严整公安交管局内部！——抓问题的根本！@深圳交警@中国政府网@人民日报"},

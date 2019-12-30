@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*
 import os
-import torch
-import jieba
 from flyai.model.base import Base
+from pytorch_transformers import BertModel
+import torch
+from torch.utils.data import DataLoader, random_split
 
-from BERT.data_utils import ABSADataset
+from data_utils import Util, ABSADataset, Tokenizer4Bert
 import args
 
 __import__('net', fromlist=["Net"])
@@ -14,16 +15,30 @@ class Model(Base):
     def __init__(self, data):
         self.net = None
         self.data = data
-        self.model_dir = os.path.join(os.getcwd(), args.best_model_path)
+        self.args = args
 
     def predict(self, **data):
         if self.net is None:
-            self.net = torch.load(self.model_dir)
-        TARGET, TEXT = self.data.predict_data(**data)
-        indexes = " ".join(jieba.cut(TARGET[0], cut_all=False))
-        questions = " ".join(jieba.cut(TEXT[0], cut_all=False))
+            model_dir = os.path.join(os.getcwd(), args.best_model_path)
+            self.tokenizer = Tokenizer4Bert(max_seq_len=self.args.max_seq_len,
+                                            pretrained_bert_name=os.path.join(os.getcwd(),
+                                                                              self.args.pretrained_bert_name))
+            bert = BertModel.from_pretrained(os.path.join(os.getcwd(), self.args.pretrained_bert_name))
+            model = self.args.model_classes[args.model_name](bert, self.args).to(self.args.device)
+            self.net = Util.load_model(model=model, output_dir=model_dir)
 
-        return None
+        TARGET, TEXT = self.data.predict_data(**data)
+        predict_set = ABSADataset(data_type=None, fname=(TARGET.tolist(), TEXT.tolist(), None),
+                                  tokenizer=self.tokenizer)
+        predict_set, _ = random_split(predict_set, (len(predict_set), 0))
+        predict_loader = DataLoader(dataset=predict_set, batch_size=1, shuffle=True)
+        self.net.eval()
+        outputs = None
+        for i_batch, sample_batched in enumerate(predict_loader):
+            inputs = [sample_batched[col].to(self.args.device) for col in self.args.input_colses[self.args.model_name]]
+            outputs = self.net(inputs)
+
+        return torch.argmax(outputs).numpy().tolist()
 
     def predict_all(self, datas):
         """

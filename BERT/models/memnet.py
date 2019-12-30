@@ -2,8 +2,8 @@
 import torch
 import torch.nn as nn
 
-from BERT.attention import Attention
-from BERT.squeeze_embedding import SqueezeEmbedding
+from attention import Attention
+from squeeze_embedding import SqueezeEmbedding
 
 
 class MemNet(nn.Module):

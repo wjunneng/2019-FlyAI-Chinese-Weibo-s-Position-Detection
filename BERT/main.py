@@ -18,9 +18,9 @@ from flyai.dataset import Dataset
 from flyai.utils import remote_helper
 from pytorch_transformers import BertModel
 
-from BERT import args as arguments
-from BERT.data_utils import ABSADataset, Tokenizer4Bert
-from BERT.data_utils import Util
+import args as arguments
+from data_utils import ABSADataset, Tokenizer4Bert
+from data_utils import Util
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -130,7 +130,7 @@ class Instructor(object):
 
                 # 2、
                 best_model_path = os.path.join(os.getcwd(), self.arguments.best_model_path)
-                torch.save(self.model, best_model_path)
+                Util.save_model(model=self.model, output_dir=best_model_path)
                 logger.info('>> saved: {}'.format(best_model_path))
             if val_f1 > max_val_f1:
                 max_val_f1 = val_f1

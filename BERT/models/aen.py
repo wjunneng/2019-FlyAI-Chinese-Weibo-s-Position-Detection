@@ -2,9 +2,9 @@
 import torch
 import torch.nn as nn
 
-from BERT.squeeze_embedding import SqueezeEmbedding
-from BERT.attention import Attention
-from BERT.point_wise_feed_forward import PositionwiseFeedForward
+from squeeze_embedding import SqueezeEmbedding
+from attention import Attention
+from point_wise_feed_forward import PositionwiseFeedForward
 
 
 # CrossEntropyLoss for Label Smoothing Regularization
