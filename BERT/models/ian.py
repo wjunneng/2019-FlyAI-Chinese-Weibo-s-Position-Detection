@@ -2,8 +2,8 @@
 import torch
 import torch.nn as nn
 
-from BERT.layers.dynamic_rnn import DynamicLSTM
-from BERT.layers.attention import Attention
+from BERT.dynamic_rnn import DynamicLSTM
+from BERT.attention import Attention
 
 
 class IAN(nn.Module):

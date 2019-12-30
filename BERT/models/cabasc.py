@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from BERT.layers.squeeze_embedding import SqueezeEmbedding
-from BERT.layers.dynamic_rnn import DynamicLSTM
+from BERT.squeeze_embedding import SqueezeEmbedding
+from BERT.dynamic_rnn import DynamicLSTM
 
 
 class Cabasc(nn.Module):

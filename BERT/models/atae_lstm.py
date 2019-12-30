@@ -2,9 +2,9 @@
 import torch
 import torch.nn as nn
 
-from BERT.layers.attention import NoQueryAttention
-from BERT.layers.dynamic_rnn import DynamicLSTM
-from BERT.layers.squeeze_embedding import SqueezeEmbedding
+from BERT.attention import NoQueryAttention
+from BERT.dynamic_rnn import DynamicLSTM
+from BERT.squeeze_embedding import SqueezeEmbedding
 
 
 class ATAE_LSTM(nn.Module):

@@ -5,10 +5,12 @@ import numpy as np
 import torch
 import logging
 import sys
+import shutil
 from torch import nn
 from time import strftime, localtime
 from pytorch_transformers import BertModel
 from torch.utils.data import DataLoader, random_split
+from flyai.utils import remote_helper
 
 import argparse
 from BERT import args as arguments
@@ -18,6 +20,10 @@ from BERT.data_utils import Util
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
+
+remote_helper.get_remote_date("https://www.flyai.com/m/chinese_base.zip")
+shutil.copyfile(os.path.join(os.getcwd(), 'vocab.txt'),
+                os.path.join(os.getcwd(), arguments.pretrained_bert_name, 'vocab.txt'))
 
 
 class Instructor(object):

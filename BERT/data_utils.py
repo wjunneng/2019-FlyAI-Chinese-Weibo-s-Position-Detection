@@ -1,5 +1,9 @@
 # -*- coding:utf-8 -*-
 import os
+import sys
+
+os.chdir(sys.path[0])
+
 import math
 import numpy as np
 import torch
@@ -70,6 +74,7 @@ class ABSADataset(Dataset):
             self.fname = fname
             self.data = self._deal_txt()
         else:
+            self.label2idx = dict((args.labels[i], i) for i in range(len(args.labels)))
             self.fname = fname
             self.data = self._deal_none()
 
@@ -167,7 +172,7 @@ class ABSADataset(Dataset):
 
             text_raw_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + text + " [SEP]")
             aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
-            polarity = polarity
+            polarity = self.label2idx[polarity]
 
             data = {
                 'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
@@ -302,3 +307,20 @@ class Util(object):
                       average='macro')
 
         return acc, f1
+
+    @staticmethod
+    def save_model(model, output_dir):
+        model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        output_model_file = os.path.join(output_dir, "pytorch_model.bin")
+        torch.save(model_to_save.state_dict(), output_model_file)
+
+    @staticmethod
+    def load_model(output_dir):
+        # Load a trained model that you have fine-tuned
+        output_model_file = os.path.join(output_dir, "pytorch_model.bin")
+        model_state_dict = torch.load(output_model_file)
+        model = Net.from_pretrained(args.bert_model, state_dict=model_state_dict, num_tag=len(args.labels))
+
+        return model

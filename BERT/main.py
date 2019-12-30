@@ -10,12 +10,13 @@ import numpy as np
 import torch
 import logging
 import argparse
+import shutil
 from torch import nn
 from time import strftime, localtime
-from pytorch_transformers import BertModel
 from torch.utils.data import DataLoader, random_split
 from flyai.dataset import Dataset
 from flyai.utils import remote_helper
+from pytorch_transformers import BertModel
 
 from BERT import args as arguments
 from BERT.data_utils import ABSADataset, Tokenizer4Bert
@@ -26,6 +27,8 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 remote_helper.get_remote_date("https://www.flyai.com/m/chinese_base.zip")
+shutil.copyfile(os.path.join(os.getcwd(), 'vocab.txt'),
+                os.path.join(os.getcwd(), arguments.pretrained_bert_name, 'vocab.txt'))
 
 
 class Instructor(object):
@@ -40,7 +43,8 @@ class Instructor(object):
 
         if 'bert' in self.arguments.model_name:
             self.tokenizer = Tokenizer4Bert(max_seq_len=self.arguments.max_seq_len,
-                                            pretrained_bert_name=self.arguments.pretrained_bert_name)
+                                            pretrained_bert_name=os.path.join(os.getcwd(),
+                                                                              self.arguments.pretrained_bert_name))
             bert = BertModel.from_pretrained(pretrained_model_name_or_path=self.arguments.pretrained_bert_name)
             self.model = self.arguments.model_class(bert, self.arguments).to(self.arguments.device)
         else:
@@ -94,7 +98,7 @@ class Instructor(object):
 
                     inputs = [sample_batched[col].to(self.arguments.device) for col in self.arguments.inputs_cols]
                     outputs = self.model(inputs)
-                    targets = sample_batched['polarity'].to(self.arguments.device)
+                    targets = torch.tensor(sample_batched['polarity']).to(self.arguments.device)
 
                     loss = criterion(outputs, targets)
                     loss.backward()
@@ -119,10 +123,14 @@ class Instructor(object):
                 max_val_acc = val_acc
                 if not os.path.exists('state_dict'):
                     os.mkdir('state_dict')
-                best_model_path = 'state_dict/{0}_{1}_val_acc{2}'.format(self.arguments.model_name,
-                                                                         self.arguments.dataset,
-                                                                         round(val_acc, 4))
-                torch.save(self.model.state_dict(), best_model_path)
+                # 1、
+                # best_model_path = 'state_dict/{0}_{1}_val_acc{2}'.format(self.arguments.model_name,
+                #                                                          self.arguments.dataset,
+                #                                                          round(val_acc, 4))
+
+                # 2、
+                best_model_path = os.path.join(os.getcwd(), self.arguments.best_model_path)
+                torch.save(self.model, best_model_path)
                 logger.info('>> saved: {}'.format(best_model_path))
             if val_f1 > max_val_f1:
                 max_val_f1 = val_f1
@@ -149,8 +157,11 @@ if __name__ == '__main__':
         'cuda:0' if torch.cuda.is_available() else 'cpu') if arguments.device is None else torch.device(
         arguments.device)
 
+    log_path = os.path.join(os.getcwd(), arguments.log_path)
+    if os.path.exists(log_path) is False:
+        os.mkdir(log_path)
     log_file = '{}-{}-{}.log'.format(arguments.model_name, arguments.dataset, strftime('%y%m%d-%H%M', localtime()))
-    logger.addHandler(logging.FileHandler(log_file))
+    logger.addHandler(logging.FileHandler(os.path.join(log_path, log_file)))
 
     instructor = Instructor(arguments)
     instructor.run()

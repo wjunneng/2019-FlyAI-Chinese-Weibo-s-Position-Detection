@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 
-from BERT.layers.dynamic_rnn import DynamicLSTM
+from BERT.dynamic_rnn import DynamicLSTM
 
 
 class TD_LSTM(nn.Module):

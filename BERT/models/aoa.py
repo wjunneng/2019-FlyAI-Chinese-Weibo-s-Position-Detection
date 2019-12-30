@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from BERT.layers.dynamic_rnn import DynamicLSTM
+from BERT.dynamic_rnn import DynamicLSTM
 
 
 class AOA(nn.Module):

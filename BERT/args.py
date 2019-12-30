@@ -1,7 +1,7 @@
 # -------------------------arg-------------------------
 import torch
-from BERT.models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet_LF, AOA, MGAN, LCF_BERT, BERT_SPC, \
-    AEN_BERT
+from BERT.models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet_LF, AOA, MGAN, LCF_BERT, BERT_SPC
+from net import Net
 
 # ############################### model parameters
 dataset = 'evasampledata4'
@@ -11,6 +11,12 @@ labels = ['NONE', 'FAVOR', 'AGAINST']
 # dataset = 'acl-14-short-data'
 # data_type = 'txt'
 
+# default='bert-base-uncased'
+pretrained_bert_name = 'data/input/model'
+# 最优模型保存路径
+best_model_path = 'data/input/model.bin'
+# log path
+log_path = 'log'
 # 模型名称
 model_name = 'aen_bert'
 # 优化算法
@@ -31,8 +37,6 @@ embed_dim = 300
 hidden_dim = 300
 # bert 维度
 bert_dim = 768
-# default='bert-base-uncased'
-pretrained_bert_name = '../data/input/model'
 # 序例最大的长度
 max_seq_len = 128
 # 极性的维度
@@ -68,8 +72,8 @@ model_classes = {
     'aoa': AOA,
     'mgan': MGAN,
     'bert_spc': BERT_SPC,
-    'aen_bert': AEN_BERT,
-    'lcf_bert': LCF_BERT
+    'lcf_bert': LCF_BERT,
+    'aen_bert': Net
 }
 dataset_files = {
     'evasampledata4': {

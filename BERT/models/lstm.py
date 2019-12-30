@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
 import torch.nn as nn
-from BERT.layers.dynamic_rnn import DynamicLSTM
+from BERT.dynamic_rnn import DynamicLSTM
 
 
 class LSTM(nn.Module):
