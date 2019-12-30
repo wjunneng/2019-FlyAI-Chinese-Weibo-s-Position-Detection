@@ -4,32 +4,44 @@ from BERT.models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet
     AEN_BERT
 
 # ############################### model parameters
-model_name = 'bert_spc'
+dataset = 'evasampledata4'
+data_type = 'csv'
+labels = ['NONE', 'FAVOR', 'AGAINST']
 
-# dataset = 'evasampledata4'
-# data_type = 'csv'
+# dataset = 'acl-14-short-data'
+# data_type = 'txt'
 
-dataset = 'acl-14-short-data'
-data_type = 'txt'
-
-optimizer = 'adam'
-initializer = 'xavier_uniform_'
-# 'try 5e-5, 2e-5 for BERT, 1e-3 for others'
-learning_rate = 2e-5
-dropout = 0.1
-l2reg = 0.01
+# 模型名称
+model_name = 'aen_bert'
 # try larger number for non-BERT models
 num_epoch = 10
 # try 16, 32, 64 for BERT models
-batch_size = 16
+batch_size = 2
+# 优化算法
+optimizer = 'adam'
+# 初始化方式
+initializer = 'xavier_uniform_'
+# 'try 5e-5, 2e-5 for BERT, 1e-3 for others'
+learning_rate = 2e-5
+# 随机失活率
+dropout = 0.1
+# 权重
+l2reg = 0.01
+# 步长
 log_step = 5
+# 嵌入的维度
 embed_dim = 300
+# 隐藏层神经元个数
 hidden_dim = 300
+# bert 维度
 bert_dim = 768
 # default='bert-base-uncased'
 pretrained_bert_name = '/home/wjunneng/Ubuntu/2019-FlyAI-Chinese-Weibo-s-Position-Detection/BERT/pretrained_model'
-max_seq_len = 80
+# 序例最大的长度
+max_seq_len = 128
+# 极性的维度
 polarities_dim = 3
+# hops
 hops = 3
 # e.g. cuda:0
 device = None

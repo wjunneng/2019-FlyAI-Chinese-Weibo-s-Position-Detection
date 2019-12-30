@@ -7,6 +7,8 @@ import pandas as pd
 from torch.utils.data import Dataset
 from pytorch_transformers import BertTokenizer
 
+from BERT import args
+
 
 class Tokenizer4Bert(object):
     def __init__(self, max_seq_len, pretrained_bert_name):
@@ -120,6 +122,7 @@ class ABSADataset(Dataset):
         self.fname = fname
         self.tokenizer = tokenizer
         if data_type == 'csv':
+            self.label2idx = dict((args.labels[i], i) for i in range(len(args.labels)))
             self.data = self._deal_csv()
         else:
             self.data = self._deal_txt()
@@ -149,18 +152,21 @@ class ABSADataset(Dataset):
 
             text_bert_indices = self.tokenizer.text_to_sequence(
                 '[CLS] ' + text_left + " " + aspect + " " + text_right + ' [SEP] ' + aspect + " [SEP]")
+
             bert_segments_ids = np.asarray([0] * (np.sum(text_raw_indices != 0) + 2) + [1] * (aspect_len + 1))
+
             bert_segments_ids = pad_and_truncate(bert_segments_ids, self.tokenizer.max_seq_len)
 
             text_raw_bert_indices = self.tokenizer.text_to_sequence(
                 "[CLS] " + text_left + " " + aspect + " " + text_right + " [SEP]")
+
             aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
 
             data = {
                 'text_bert_indices': text_bert_indices,
                 'bert_segments_ids': bert_segments_ids,
-                'text_raw_bert_indices': text_raw_bert_indices,
-                'aspect_bert_indices': aspect_bert_indices,
+                'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
+                'aspect_bert_indices': aspect_bert_indices,  # aen_bert
                 'text_raw_indices': text_raw_indices,
                 'text_raw_without_aspect_indices': text_raw_without_aspect_indices,
                 'text_left_indices': text_left_indices,
@@ -177,10 +183,33 @@ class ABSADataset(Dataset):
 
     def _deal_csv(self):
         data = pd.read_csv(filepath_or_buffer=self.fname, sep='\t', encoding='utf-8')
-        ID = data['ID']
-        TARGET = data['TARGET']
-        TEXT = data['TEXT']
-        STANCE = data['STANCE']
+        print('drop before shape: {}'.format(data.shape))
+        data.dropna(axis=0, how='any', inplace=True)
+        print('drop after shape: {}'.format(data.shape))
+        ID = data['ID'].values.tolist()
+        TARGET = data['TARGET'].values.tolist()
+        TEXT = data['TEXT'].values.tolist()
+        STANCE = data['STANCE'].values.tolist()
+
+        all_data = []
+        for i in range(len(ID)):
+            aspect = TARGET[i].strip().lower()
+            polarity = STANCE[i]
+            text = TEXT[i].strip().lower()
+
+            text_raw_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + text + " [SEP]")
+            aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
+            polarity = self.label2idx[polarity]
+
+            data = {
+                'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
+                'aspect_bert_indices': aspect_bert_indices,  # aen_bert
+                'polarity': polarity,
+            }
+
+            all_data.append(data)
+
+        return all_data
 
     def __getitem__(self, index):
         return self.data[index]
