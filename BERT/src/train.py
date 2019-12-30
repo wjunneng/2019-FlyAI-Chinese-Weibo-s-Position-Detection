@@ -5,16 +5,14 @@ import numpy as np
 import torch
 import logging
 import sys
-import math
 from torch import nn
 from time import strftime, localtime
 from pytorch_transformers import BertModel
 from torch.utils.data import DataLoader, random_split
-from sklearn.metrics import f1_score
 
 from BERT import args
-from BERT.utils.data_utils import ABSADataset
-from BERT.utils.data_utils import Tokenizer4Bert, bulid_tokenizer, build_embedding_matrix
+from BERT.utils.data_utils import ABSADataset, Tokenizer4Bert
+from BERT.utils.data_utils import Util
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -31,12 +29,12 @@ class Instructor(object):
             bert = BertModel.from_pretrained(pretrained_model_name_or_path=self.args.pretrained_bert_name)
             self.model = self.args.model_class(bert, self.args).to(self.args.device)
         else:
-            tokenizer = bulid_tokenizer(
+            tokenizer = Util.bulid_tokenizer(
                 fnames=[self.args.dataset_file['train'], self.args.dataset_file['test']],
                 max_seq_len=self.args.max_seq_len,
                 dat_fname='{0}_tokenizer.dat'.format(self.args.dataset)
             )
-            embedding_matrix = build_embedding_matrix(
+            embedding_matrix = Util.build_embedding_matrix(
                 word2idx=tokenizer.word2idx,
                 embed_dim=self.args.embed_dim,
                 dat_fname='{0}_{1}_embedding_matrix.dat'.format(str(self.args.embed_dim), self.args.dataset)
@@ -58,64 +56,23 @@ class Instructor(object):
         if self.args.device.type == 'cuda':
             logger.info('cuda memory allocated: {}'.format(torch.cuda.memory_allocated(device=self.args.device.index)))
 
-        self._print_args()
+        Util.print_args(model=self.model, logger=logger, args=self.args)
 
-    def _print_args(self):
-        n_trainable_params, n_nontrainable_params = 0, 0
-        for p in self.model.parameters():
-            n_params = torch.prod(torch.tensor(p.shape))
-            if p.requires_grad:
-                n_trainable_params += n_params
-            else:
-                n_nontrainable_params += n_params
+    def run(self):
+        # loss and optimizer
+        criterion = nn.CrossEntropyLoss()
+        _params = filter(lambda x: x.requires_grad, self.model.parameters())
+        optimizer = self.args.optimizer(_params, lr=self.args.learning_rate, weight_decay=self.args.l2reg)
 
-        logger.info(
-            'n_trainable_params: {0}, n_nontrainable_params: {1}'.format(n_trainable_params, n_nontrainable_params))
-        logger.info('> training arguments:')
-        for arg in vars(self.args):
-            logger.info('>>> {0}:{1}'.format(arg, getattr(self.args, arg)))
+        train_data_loader = DataLoader(dataset=self.trainset, batch_size=self.args.batch_size, shuffle=True)
+        val_data_loader = DataLoader(dataset=self.valset, batch_size=self.args.batch_size, shuffle=False)
 
-    def _reset_params(self):
-        for child in self.model.children():
-            if type(child) != BertModel:
-                for p in child.parameters():
-                    if p.requires_grad:
-                        if len(p.shape) > 1:
-                            self.args.initializer(p)
-                        else:
-                            stdv = 1. / math.sqrt(p.shape[0])
-                            torch.nn.init.uniform_(p, a=-stdv, b=stdv)
-
-    def _evaluate_acc_f1(self, data_loader):
-        n_correct, n_total = 0, 0
-        t_targets_all, t_outputs_all = None, None
-        with torch.no_grad():
-            for t_batch, t_sample_batched in enumerate(data_loader):
-                t_inputs = [t_sample_batched[col].to(self.args.device) for col in self.args.inputs_cols]
-                t_outputs = self.model(t_inputs)
-                t_targets = t_sample_batched['polarity'].to(self.args.device)
-
-                n_correct += (torch.argmax(t_outputs, -1) == t_targets).sum().item()
-                n_total += len(t_outputs)
-
-                if t_targets_all is None:
-                    t_targets_all = t_targets
-                    t_outputs_all = t_outputs
-                else:
-                    t_targets_all = torch.cat((t_targets_all, t_targets), dim=0)
-                    t_outputs_all = torch.cat((t_outputs_all, t_outputs), dim=0)
-
-        acc = n_correct / n_total
-        f1 = f1_score(y_true=t_targets_all.cpu(), y_pred=torch.argmax(t_outputs_all, -1).cpu(), labels=[0, 1, 2],
-                      average='macro')
-
-        return acc, f1
-
-    def _train(self, criterion, optimizer, train_data_loader, val_data_loader):
+        Util.reset_params(model=self.model, args=self.args)
+        # 训练
         max_val_acc = 0
         max_val_f1 = 0
         global_step = 0
-        path = None
+        best_model_path = None
         for epoch in range(self.args.num_epoch):
             logger.info('>' * 100)
             logger.info('epoch: {}'.format(epoch))
@@ -143,36 +100,21 @@ class Instructor(object):
                     train_loss = loss_total / n_total
                     logger.info('loss: {:.4f}, acc: {:.4f}'.format(train_loss, train_acc))
 
-            val_acc, val_f1 = self._evaluate_acc_f1(val_data_loader)
+            val_acc, val_f1 = Util.evaluate_acc_f1(model=self.model, args=self.args, data_loader=val_data_loader)
             logger.info('> val_acc: {:.4f}, val_f1: {:.4f}'.format(val_acc, val_f1))
             if val_acc > max_val_acc:
                 max_val_acc = val_acc
                 if not os.path.exists('state_dict'):
                     os.mkdir('state_dict')
-                path = 'state_dict/{0}_{1}_val_acc{2}'.format(self.args.model_name, self.args.dataset,
-                                                              round(val_acc, 4))
-                torch.save(self.model.state_dict(), path)
-                logger.info('>> saved: {}'.format(path))
+                best_model_path = 'state_dict/{0}_{1}_val_acc{2}'.format(self.args.model_name, self.args.dataset,
+                                                                         round(val_acc, 4))
+                torch.save(self.model.state_dict(), best_model_path)
+                logger.info('>> saved: {}'.format(best_model_path))
             if val_f1 > max_val_f1:
                 max_val_f1 = val_f1
 
         logger.info('> max_val_acc: {0} max_val_f1: {1}'.format(max_val_acc, max_val_f1))
 
-        return path
-
-    def run(self):
-        # loss and optimizer
-        criterion = nn.CrossEntropyLoss()
-        _params = filter(lambda x: x.requires_grad, self.model.parameters())
-        optimizer = self.args.optimizer(_params, lr=self.args.learning_rate, weight_decay=self.args.l2reg)
-
-        train_data_loader = DataLoader(dataset=self.trainset, batch_size=self.args.batch_size, shuffle=True)
-        val_data_loader = DataLoader(dataset=self.valset, batch_size=self.args.batch_size, shuffle=False)
-
-        self._reset_params()
-        # 训练
-        best_model_path = self._train(criterion=criterion, optimizer=optimizer, train_data_loader=train_data_loader,
-                                      val_data_loader=val_data_loader)
         logger.info('> train save model path: {}'.format(best_model_path))
 
         # 测试

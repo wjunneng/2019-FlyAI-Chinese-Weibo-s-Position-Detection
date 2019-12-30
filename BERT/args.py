@@ -14,7 +14,7 @@ labels = ['NONE', 'FAVOR', 'AGAINST']
 # 模型名称
 model_name = 'aen_bert'
 # try larger number for non-BERT models
-num_epoch = 10
+num_epoch = 2
 # try 16, 32, 64 for BERT models
 batch_size = 2
 # 优化算法

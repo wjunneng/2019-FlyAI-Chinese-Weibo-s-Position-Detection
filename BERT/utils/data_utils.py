@@ -1,11 +1,14 @@
 # -*- coding:utf-8 -*-
 import os
+import math
 import numpy as np
 import torch
 import pickle
 import pandas as pd
 from torch.utils.data import Dataset
 from pytorch_transformers import BertTokenizer
+from sklearn.metrics import f1_score
+from pytorch_transformers import BertModel
 
 from BERT import args
 
@@ -21,29 +24,7 @@ class Tokenizer4Bert(object):
             sequence = [0]
         if reverse:
             sequence = sequence[::-1]
-        return pad_and_truncate(sequence, self.max_seq_len, padding=padding, truncating=truncating)
-
-
-def bulid_tokenizer(fnames, max_seq_len, dat_fname):
-    if os.path.exists(dat_fname):
-        print('loading tokenizer:', dat_fname)
-        tokenizer = pickle.load(open(dat_fname), 'rb')
-    else:
-        text = ''
-        for fname in fnames:
-            with open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
-                lines = file.readlines()
-            for i in range(0, len(lines), 3):
-                text_left, _, text_right = [s.lower().strip() for s in lines[i].partition('$T$')]
-                aspect = lines[i + 1].lower().strip()
-                text_raw = text_left + ' ' + aspect + ' ' + text_right
-                text += text_raw + ' '
-
-        tokenizer = Tokenizer(max_seq_len)
-        tokenizer.fit_on_text(text)
-        pickle.dump(tokenizer, open(dat_fname, 'wb'))
-
-    return tokenizer
+        return Util.pad_and_truncate(sequence, self.max_seq_len, padding=padding, truncating=truncating)
 
 
 class Tokenizer(object):
@@ -74,47 +55,7 @@ class Tokenizer(object):
         if reverse:
             sequence = sequence[::-1]
 
-        return pad_and_truncate(sequence, self.max_seq_len, padding=padding, truncating=truncating)
-
-
-def build_embedding_matrix(word2idx, embed_dim, dat_fname):
-    if os.path.exists(dat_fname):
-        print('loading_embedding_matrix:', dat_fname)
-        embedding_matrix = pickle.load(open(dat_fname, 'rb'))
-    else:
-        print('loading word vectors...')
-        # idx 0 and len(word2idx)+1 are all-zeros
-        embedding_matrix = np.zeros(shape=(len(word2idx) + 2, embed_dim))
-        fname = './glove.twitter.27B/glove.twitter.27B.' + str(
-            embed_dim) + 'd.txt' if embed_dim != 300 else './glove.42B.300d.txt'
-        word_vec = {}
-        with open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
-            for line in file.readlines():
-                tokens = line.rstrip().split()
-                if word2idx is None or tokens[0] in word2idx.keys():
-                    word_vec[tokens[0]] = np.asarray(tokens[1:], dtype='float32')
-        print('building embedding_matrix:', dat_fname)
-        for word, index in word2idx.items():
-            vec = word_vec.get(word)
-            if vec is not None:
-                embedding_matrix[index] = vec
-        pickle.dump(embedding_matrix, open(dat_fname, 'wb'))
-
-    return embedding_matrix
-
-
-def pad_and_truncate(sequence, maxlen, dtype='int64', padding='post', truncating='post', value=0):
-    x = (np.ones(maxlen) * value).astype(dtype)
-    if truncating == 'pre':
-        trunc = sequence[-maxlen:]
-    else:
-        trunc = sequence[:maxlen]
-    trunc = np.asarray(trunc, dtype=dtype)
-    if padding == 'post':
-        x[:len(trunc)] = trunc
-    else:
-        x[-len(trunc):] = trunc
-    return x
+        return Util.pad_and_truncate(sequence, self.max_seq_len, padding=padding, truncating=truncating)
 
 
 class ABSADataset(Dataset):
@@ -155,7 +96,7 @@ class ABSADataset(Dataset):
 
             bert_segments_ids = np.asarray([0] * (np.sum(text_raw_indices != 0) + 2) + [1] * (aspect_len + 1))
 
-            bert_segments_ids = pad_and_truncate(bert_segments_ids, self.tokenizer.max_seq_len)
+            bert_segments_ids = Util.pad_and_truncate(bert_segments_ids, self.tokenizer.max_seq_len)
 
             text_raw_bert_indices = self.tokenizer.text_to_sequence(
                 "[CLS] " + text_left + " " + aspect + " " + text_right + " [SEP]")
@@ -216,3 +157,121 @@ class ABSADataset(Dataset):
 
     def __len__(self):
         return len(self.data)
+
+
+class Util(object):
+    @staticmethod
+    def bulid_tokenizer(fnames, max_seq_len, dat_fname):
+        if os.path.exists(dat_fname):
+            print('loading tokenizer:', dat_fname)
+            tokenizer = pickle.load(open(dat_fname), 'rb')
+        else:
+            text = ''
+            for fname in fnames:
+                with open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
+                    lines = file.readlines()
+                for i in range(0, len(lines), 3):
+                    text_left, _, text_right = [s.lower().strip() for s in lines[i].partition('$T$')]
+                    aspect = lines[i + 1].lower().strip()
+                    text_raw = text_left + ' ' + aspect + ' ' + text_right
+                    text += text_raw + ' '
+
+            tokenizer = Tokenizer(max_seq_len)
+            tokenizer.fit_on_text(text)
+            pickle.dump(tokenizer, open(dat_fname, 'wb'))
+
+        return tokenizer
+
+    @staticmethod
+    def build_embedding_matrix(word2idx, embed_dim, dat_fname):
+        if os.path.exists(dat_fname):
+            print('loading_embedding_matrix:', dat_fname)
+            embedding_matrix = pickle.load(open(dat_fname, 'rb'))
+        else:
+            print('loading word vectors...')
+            # idx 0 and len(word2idx)+1 are all-zeros
+            embedding_matrix = np.zeros(shape=(len(word2idx) + 2, embed_dim))
+            fname = './glove.twitter.27B/glove.twitter.27B.' + str(
+                embed_dim) + 'd.txt' if embed_dim != 300 else './glove.42B.300d.txt'
+            word_vec = {}
+            with open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
+                for line in file.readlines():
+                    tokens = line.rstrip().split()
+                    if word2idx is None or tokens[0] in word2idx.keys():
+                        word_vec[tokens[0]] = np.asarray(tokens[1:], dtype='float32')
+            print('building embedding_matrix:', dat_fname)
+            for word, index in word2idx.items():
+                vec = word_vec.get(word)
+                if vec is not None:
+                    embedding_matrix[index] = vec
+            pickle.dump(embedding_matrix, open(dat_fname, 'wb'))
+
+        return embedding_matrix
+
+    @staticmethod
+    def pad_and_truncate(sequence, maxlen, dtype='int64', padding='post', truncating='post', value=0):
+        x = (np.ones(maxlen) * value).astype(dtype)
+        if truncating == 'pre':
+            trunc = sequence[-maxlen:]
+        else:
+            trunc = sequence[:maxlen]
+        trunc = np.asarray(trunc, dtype=dtype)
+        if padding == 'post':
+            x[:len(trunc)] = trunc
+        else:
+            x[-len(trunc):] = trunc
+        return x
+
+    @staticmethod
+    def print_args(model, logger, args):
+        n_trainable_params, n_nontrainable_params = 0, 0
+        for p in model.parameters():
+            n_params = torch.prod(torch.tensor(p.shape))
+            if p.requires_grad:
+                n_trainable_params += n_params
+            else:
+                n_nontrainable_params += n_params
+
+        logger.info(
+            'n_trainable_params: {0}, n_nontrainable_params: {1}'.format(n_trainable_params, n_nontrainable_params))
+        logger.info('> training arguments:')
+        for arg in vars(args):
+            logger.info('>>> {0}:{1}'.format(arg, getattr(args, arg)))
+
+    @staticmethod
+    def reset_params(model, args):
+        for child in model.children():
+            if type(child) != BertModel:
+                for p in child.parameters():
+                    if p.requires_grad:
+                        if len(p.shape) > 1:
+                            args.initializer(p)
+                        else:
+                            stdv = 1. / math.sqrt(p.shape[0])
+                            torch.nn.init.uniform_(p, a=-stdv, b=stdv)
+
+    @staticmethod
+    def evaluate_acc_f1(model, args, data_loader):
+        n_correct, n_total = 0, 0
+        t_targets_all, t_outputs_all = None, None
+        with torch.no_grad():
+            for t_batch, t_sample_batched in enumerate(data_loader):
+                t_inputs = [t_sample_batched[col].to(args.device) for col in args.inputs_cols]
+                t_outputs = model(t_inputs)
+                t_targets = t_sample_batched['polarity'].to(args.device)
+
+                n_correct += (torch.argmax(t_outputs, -1) == t_targets).sum().item()
+                n_total += len(t_outputs)
+
+                if t_targets_all is None:
+                    t_targets_all = t_targets
+                    t_outputs_all = t_outputs
+                else:
+                    t_targets_all = torch.cat((t_targets_all, t_targets), dim=0)
+                    t_outputs_all = torch.cat((t_outputs_all, t_outputs), dim=0)
+
+        acc = n_correct / n_total
+        f1 = f1_score(y_true=t_targets_all.cpu(), y_pred=torch.argmax(t_outputs_all, -1).cpu(), labels=[0, 1, 2],
+                      average='macro')
+
+        return acc, f1
