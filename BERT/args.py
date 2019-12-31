@@ -7,6 +7,7 @@ from net import Net
 dataset = 'evasampledata4'
 data_type = 'csv'
 labels = ['NONE', 'FAVOR', 'AGAINST']
+topics = ['iphonese', '春节放鞭炮', '深圳禁摩限电', '俄罗斯在叙利亚的反恐行动', '开放二胎']
 
 # dataset = 'acl-14-short-data'
 # data_type = 'txt'
@@ -53,6 +54,8 @@ valset_ratio = 0.2
 local_context_focus = 'cdm'
 # semantic-relative-distance, see the paper of LCF-BERT model
 SRD = 3
+# k-fold cross validation
+cross_val_fold = 10
 
 # ############################### other parameters
 # default hyper-parameters for LCF-BERT model is as follws:

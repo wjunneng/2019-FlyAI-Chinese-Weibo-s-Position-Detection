@@ -19,8 +19,12 @@ class Model(Base):
         self.idx2label = dict((i, args.labels[i]) for i in range(len(args.labels)))
 
     def predict(self, **data):
-        if self.net is None:
-            model_dir = os.path.join(os.getcwd(), args.best_model_path)
+        TARGET, TEXT = self.data.predict_data(**data)
+        if self.net is None or isinstance(self.args.topics, list):
+            if isinstance(self.args.topics, list):
+                model_dir = os.path.join(os.getcwd(), args.best_model_path, TARGET.tolist()[0].lower())
+            else:
+                model_dir = os.path.join(os.getcwd(), args.best_model_path)
             self.tokenizer = Tokenizer4Bert(max_seq_len=self.args.max_seq_len,
                                             pretrained_bert_name=os.path.join(os.getcwd(),
                                                                               self.args.pretrained_bert_name))
@@ -28,7 +32,6 @@ class Model(Base):
             model = self.args.model_classes[args.model_name](bert, self.args).to(self.args.device)
             self.net = Util.load_model(model=model, output_dir=model_dir)
 
-        TARGET, TEXT = self.data.predict_data(**data)
         TEXT = PreProcessing(TEXT).get_file_text()
         predict_set = ABSADataset(data_type=None, fname=(TARGET.tolist(), TEXT.tolist(), None),
                                   tokenizer=self.tokenizer)
