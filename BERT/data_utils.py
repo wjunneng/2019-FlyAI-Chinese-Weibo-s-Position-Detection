@@ -4,6 +4,7 @@ import sys
 
 os.chdir(sys.path[0])
 
+import re
 import math
 import numpy as np
 import torch
@@ -328,3 +329,62 @@ class Util(object):
         model.load_state_dict(torch.load(output_model_file))
 
         return model
+
+
+class PreProcessing(object):
+    def __init__(self, fileText):
+        self.label = []
+        self.maxLen = 0
+        self.fileText = fileText.tolist()
+
+        self.refresh_eng_data()
+        self.refresh_chn_data()
+
+    def refresh_eng_data(self):
+        fileText = []
+        for string in self.fileText:
+            string = re.sub(r"\'s", " \'s", string)
+            string = re.sub(r"\'ve", " \'ve", string)
+            string = re.sub(r"n\'t", " n\'t", string)
+            string = re.sub(r"\'re", " \'re", string)
+            string = re.sub(r"\'d", " \'d", string)
+            string = re.sub(r"\'ll", " \'ll", string)
+            string = re.sub(r",", " , ", string)
+            string = re.sub(r"!", " ! ", string)
+            string = re.sub(r"\(", " \( ", string)
+            string = re.sub(r"\)", " \) ", string)
+            string = re.sub(r"\?", " \? ", string)
+            string = re.sub(r"\s{2,}", " ", string)
+
+            fileText.append(string.strip().lower())
+
+        self.fileText = fileText
+
+    def refresh_chn_data(self):
+        """
+         全角数字转半角
+         全角英文字母转半角
+         全角中文标点转半角
+         转小写(可选)
+        """
+        fileText = []
+        for istring in self.fileText:
+            rstring = ""
+            for uchar in istring:
+                inside_code = ord(uchar)
+                if inside_code == 0x3000:
+                    inside_code = 0x0020
+                else:
+                    inside_code -= 0xfee0
+                if inside_code < 0x0020 or inside_code > 0x7e:
+                    rstring += uchar
+                else:
+                    rstring += chr(inside_code)
+            rstring = re.sub(r'\s+', ' ', rstring).lower()
+
+            fileText.append(rstring)
+
+        self.fileText = fileText
+
+    def get_file_text(self):
+        return np.asarray(self.fileText)

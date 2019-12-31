@@ -20,7 +20,7 @@ from pytorch_transformers import BertModel
 
 import args as arguments
 from data_utils import ABSADataset, Tokenizer4Bert
-from data_utils import Util, PreProcessing
+from data_utils import Util
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -86,8 +86,7 @@ class Instructor(object):
             self.model.train()
             for step in range(self.dataset.get_step() // self.args.EPOCHS):
                 (target_train, text_train), stance_train = self.dataset.next_train_batch()
-                # 预处理
-                text_train = PreProcessing(text_train).get_file_text()
+
                 trainset = ABSADataset(data_type=None, fname=(target_train, text_train, stance_train),
                                        tokenizer=self.tokenizer)
                 trainset, _ = random_split(trainset, (len(trainset), 0))
@@ -114,7 +113,6 @@ class Instructor(object):
                         logger.info('loss: {:.4f}, acc: {:.4f}'.format(train_loss, train_acc))
 
             (target_val, text_val), stance_train = self.dataset.next_validation_batch()
-            text_val = PreProcessing(text_val).get_file_text()
             valset = ABSADataset(data_type=None, fname=(target_val, text_val, stance_train), tokenizer=self.tokenizer)
             valset, _ = random_split(valset, (len(valset), 0))
             valset_loader = DataLoader(dataset=valset, batch_size=self.args.BATCH, shuffle=True)

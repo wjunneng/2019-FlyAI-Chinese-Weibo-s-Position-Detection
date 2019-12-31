@@ -5,7 +5,7 @@ from pytorch_transformers import BertModel
 import torch
 from torch.utils.data import DataLoader, random_split
 
-from data_utils import Util, ABSADataset, Tokenizer4Bert
+from data_utils import Util, ABSADataset, Tokenizer4Bert, PreProcessing
 import args
 
 __import__('net', fromlist=["Net"])
@@ -29,6 +29,7 @@ class Model(Base):
             self.net = Util.load_model(model=model, output_dir=model_dir)
 
         TARGET, TEXT = self.data.predict_data(**data)
+        TEXT = PreProcessing(TEXT).get_file_text()
         predict_set = ABSADataset(data_type=None, fname=(TARGET.tolist(), TEXT.tolist(), None),
                                   tokenizer=self.tokenizer)
         predict_set, _ = random_split(predict_set, (len(predict_set), 0))
