@@ -14,6 +14,7 @@ from torch.utils.data import Dataset
 from pytorch_transformers import BertTokenizer, BertModel
 from sklearn.metrics import f1_score
 
+import zh_wiki
 import args
 
 
@@ -339,26 +340,51 @@ class PreProcessing(object):
 
         self.refresh_eng_data()
         self.refresh_chn_data()
+        # self.hant_to_hans()
 
     def refresh_eng_data(self):
         fileText = []
-        for string in self.fileText:
-            string = re.sub(r"\'s", " \'s", string)
-            string = re.sub(r"\'ve", " \'ve", string)
-            string = re.sub(r"n\'t", " n\'t", string)
-            string = re.sub(r"\'re", " \'re", string)
-            string = re.sub(r"\'d", " \'d", string)
-            string = re.sub(r"\'ll", " \'ll", string)
-            string = re.sub(r",", " , ", string)
-            string = re.sub(r"!", " ! ", string)
-            string = re.sub(r"\(", " \( ", string)
-            string = re.sub(r"\)", " \) ", string)
-            string = re.sub(r"\?", " \? ", string)
-            string = re.sub(r"\s{2,}", " ", string)
+        for istring in self.fileText:
+            # 替换
+            istring = re.sub(r"\'s", " \'s", istring)
+            istring = re.sub(r"\'ve", " \'ve", istring)
+            istring = re.sub(r"n\'t", " n\'t", istring)
+            istring = re.sub(r"\'re", " \'re", istring)
+            istring = re.sub(r"\'d", " \'d", istring)
+            istring = re.sub(r"\'ll", " \'ll", istring)
+            istring = re.sub(r",", " , ", istring)
+            istring = re.sub(r"!", " ! ", istring)
+            istring = re.sub(r"\(", " \( ", istring)
+            istring = re.sub(r"\)", " \) ", istring)
+            istring = re.sub(r"\?", " \? ", istring)
+            istring = re.sub(r"\s{2,}", " ", istring)
 
-            fileText.append(string.strip().lower())
+            istring = istring.replace("“", """\"""")
+            istring = istring.replace("”", """\"""")
+            # 中文字符转英文字符
+            table = {ord(f): ord(t) for (f, t) in
+                     zip(r"""！‟＃＄％＆‛（）＊＋，－。／：；＜＝＞？＠【＼】＾＿｀｛｜｝～""", r"""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~""")}
+            istring = istring.translate(table)
 
-        self.fileText = fileText
+            istring = re.sub(' +', ' ', istring)
+            istring = re.sub(',+', ',', istring)
+            istring = re.sub('\.+', '.', istring)
+            istring = re.sub('!+', '!', istring)
+            istring = re.sub('\?+', '?', istring)
+            istring = re.sub('%+', '%', istring)
+            istring = re.sub('#+', '#', istring)
+            istring = re.sub('@+', '@', istring)
+            istring = re.sub('&+', '&', istring)
+            istring = re.sub('~+', '~', istring)
+            istring = re.sub('/+', '/', istring)
+            istring = re.sub('-+', '-', istring)
+            istring = re.sub('\(+', '(', istring)
+            istring = re.sub('\)+', ')', istring)
+            istring = re.sub('\|+', '|', istring)
+
+            fileText.append(istring.strip().lower())
+
+            self.fileText = fileText
 
     def refresh_chn_data(self):
         """
@@ -385,6 +411,21 @@ class PreProcessing(object):
             fileText.append(rstring)
 
         self.fileText = fileText
+
+    def hant_to_hans(self):
+        _zh2Hant, _zh2Hans = {}, {}
+        for old, new in ((zh_wiki.zh2Hant, _zh2Hant), (zh_wiki.zh2Hans, _zh2Hans)):
+            for k, v in old.items():
+                new[k] = v
+
+        _zh2Hant = {value: key for (key, value) in _zh2Hant.items() if key != value}
+        _zh2Hans = {key: value for (key, value) in _zh2Hans.items() if key != value}
+
+        _zh2Hant.update(_zh2Hans)
+
+        for index in range(len(self.fileText)):
+            for hant in _zh2Hant.keys():
+                self.fileText[index] = self.fileText[index].replace(hant, _zh2Hant[hant])
 
     def get_file_text(self):
         return np.asarray(self.fileText)

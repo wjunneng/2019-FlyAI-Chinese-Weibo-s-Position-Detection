@@ -78,15 +78,17 @@ class Instructor(object):
         max_val_f1 = 0
         global_step = 0
         best_model_path = None
+
+        target_set = set()
         for epoch in range(self.args.EPOCHS):
             logger.info('>' * 100)
             logger.info('epoch: {}'.format(epoch))
             n_correct, n_total, loss_total = 0, 0, 0
-            # switch model to training mode
             self.model.train()
             for step in range(self.dataset.get_step() // self.args.EPOCHS):
                 (target_train, text_train), stance_train = self.dataset.next_train_batch()
-                # 预处理
+                for target in target_train:
+                    target_set.add(target)
                 text_train = PreProcessing(text_train).get_file_text()
                 trainset = ABSADataset(data_type=None, fname=(target_train, text_train, stance_train),
                                        tokenizer=self.tokenizer)
@@ -94,7 +96,6 @@ class Instructor(object):
                 trainset_loader = DataLoader(dataset=trainset, batch_size=self.args.BATCH, shuffle=True)
                 for i_batch, sample_batched in enumerate(trainset_loader):
                     global_step += 1
-                    # clear gradient accumulators
                     optimizer.zero_grad()
 
                     inputs = [sample_batched[col].to(self.arguments.device) for col in self.arguments.inputs_cols]
@@ -114,6 +115,8 @@ class Instructor(object):
                         logger.info('loss: {:.4f}, acc: {:.4f}'.format(train_loss, train_acc))
 
             (target_val, text_val), stance_train = self.dataset.next_validation_batch()
+            for target in target_val:
+                target_set.add(target)
             text_val = PreProcessing(text_val).get_file_text()
             valset = ABSADataset(data_type=None, fname=(target_val, text_val, stance_train), tokenizer=self.tokenizer)
             valset, _ = random_split(valset, (len(valset), 0))
@@ -123,22 +126,14 @@ class Instructor(object):
             logger.info('> val_acc: {:.4f}, val_f1: {:.4f}'.format(val_acc, val_f1))
             if val_acc > max_val_acc:
                 max_val_acc = val_acc
-                if not os.path.exists('state_dict'):
-                    os.mkdir('state_dict')
-                # 1、
-                # best_model_path = 'state_dict/{0}_{1}_val_acc{2}'.format(self.arguments.model_name,
-                #                                                          self.arguments.dataset,
-                #                                                          round(val_acc, 4))
-
-                # 2、
                 best_model_path = os.path.join(os.getcwd(), self.arguments.best_model_path)
                 Util.save_model(model=self.model, output_dir=best_model_path)
                 logger.info('>> saved: {}'.format(best_model_path))
             if val_f1 > max_val_f1:
                 max_val_f1 = val_f1
+            logger.info('>>> target: {}'.format(target_set))
 
         for epoch in range(1):
-            # switch model to training mode
             self.model.train()
             (target_val, text_val), stance_train = self.dataset.next_validation_batch()
             valset = ABSADataset(data_type=None, fname=(target_val, text_val, stance_train), tokenizer=self.tokenizer)
@@ -146,7 +141,6 @@ class Instructor(object):
             valset_loader = DataLoader(dataset=valset, batch_size=self.args.BATCH, shuffle=True)
             for i_batch, sample_batched in enumerate(valset_loader):
                 global_step += 1
-                # clear gradient accumulators
                 optimizer.zero_grad()
                 inputs = [sample_batched[col].to(self.arguments.device) for col in self.arguments.inputs_cols]
                 outputs = self.model(inputs)
