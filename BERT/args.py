@@ -23,7 +23,9 @@ from net import Net
 dataset = 'evasampledata4'
 data_type = 'csv'
 labels = ['NONE', 'FAVOR', 'AGAINST']
-topics = ['IphoneSE', '春节放鞭炮', '深圳禁摩限电', '俄罗斯在叙利亚的反恐行动', '开放二胎']
+
+# topics = ['IphoneSE', '春节放鞭炮', '深圳禁摩限电', '俄罗斯在叙利亚的反恐行动', '开放二胎']
+topics = None
 
 # dataset = 'acl-14-short-data'
 # data_type = 'txt'
