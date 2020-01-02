@@ -1,6 +1,22 @@
 # -------------------------arg-------------------------
+import os
+import sys
+
+os.chdir(sys.path[0])
 import torch
-from models import LSTM, IAN, MemNet, RAM, TD_LSTM, Cabasc, ATAE_LSTM, TNet_LF, AOA, MGAN, LCF_BERT, BERT_SPC
+
+from models.lstm import LSTM
+from models.ian import IAN
+from models.memnet import MemNet
+from models.ram import RAM
+from models.td_lstm import TD_LSTM
+from models.cabasc import Cabasc
+from models.atae_lstm import ATAE_LSTM
+from models.tnet_lf import TNet_LF
+from models.aoa import AOA
+from models.mgan import MGAN
+from models.lcf_bert import LCF_BERT
+from models.bert_spc import BERT_SPC
 from net import Net
 
 # ############################### model parameters

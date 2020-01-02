@@ -39,7 +39,7 @@ class Instructor(object):
     def __init__(self, arguments):
         # 项目的超参
         parser = argparse.ArgumentParser()
-        parser.add_argument("-e", "--EPOCHS", default=5, type=int, help="train epochs")
+        parser.add_argument("-e", "--EPOCHS", default=10, type=int, help="train epochs")
         parser.add_argument("-b", "--BATCH", default=2, type=int, help="batch size")
         self.args = parser.parse_args()
         self.arguments = arguments

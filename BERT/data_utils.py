@@ -352,15 +352,10 @@ class PreProcessing(object):
             istring = re.sub(r"\'re", " \'re", istring)
             istring = re.sub(r"\'d", " \'d", istring)
             istring = re.sub(r"\'ll", " \'ll", istring)
-            istring = re.sub(r",", " , ", istring)
-            istring = re.sub(r"!", " ! ", istring)
-            istring = re.sub(r"\(", " \( ", istring)
-            istring = re.sub(r"\)", " \) ", istring)
-            istring = re.sub(r"\?", " \? ", istring)
-            istring = re.sub(r"\s{2,}", " ", istring)
+            istring = re.sub("“", """\"""", istring)
+            istring = re.sub("”", """\"""", istring)
+            istring = re.sub(r'(https|http)?:\/\/(\w|\.|\/|\?|\=|\&|\%)*\b', " ", istring)
 
-            istring = istring.replace("“", """\"""")
-            istring = istring.replace("”", """\"""")
             # 中文字符转英文字符
             table = {ord(f): ord(t) for (f, t) in
                      zip(r"""！‟＃＄％＆‛（）＊＋，－。／：；＜＝＞？＠【＼】＾＿｀｛｜｝～""", r"""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~""")}
