@@ -57,7 +57,7 @@ hidden_dim = 300
 # bert 维度
 bert_dim = 768
 # 序例最大的长度
-max_seq_len = 128
+max_seq_len = 140
 # 极性的维度
 polarities_dim = 3
 # hops
@@ -73,7 +73,7 @@ local_context_focus = 'cdm'
 # semantic-relative-distance, see the paper of LCF-BERT model
 SRD = 3
 # k-fold cross validation
-cross_val_fold = 10
+cross_val_fold = 8
 
 # ############################### other parameters
 # default hyper-parameters for LCF-BERT model is as follws:

@@ -340,7 +340,7 @@ class PreProcessing(object):
 
         self.refresh_eng_data()
         self.refresh_chn_data()
-        # self.hant_to_hans()
+        self.hant_to_hans()
 
     def refresh_eng_data(self):
         fileText = []
