@@ -146,20 +146,6 @@ class Instructor(object):
                 if val_f1 > max_val_f1:
                     max_val_f1 = val_f1
 
-            self.model = Util.load_model(model=self.model, output_dir=best_model_path)
-            self.model.train()
-            for i_batch, sample_batched in enumerate(val_data_loader):
-                global_step += 1
-                optimizer.zero_grad()
-
-                inputs = [sample_batched[col].to(self.arguments.device) for col in self.arguments.inputs_cols]
-                outputs = self.model(inputs)
-                targets = torch.tensor(sample_batched['polarity']).to(self.arguments.device)
-
-                loss = criterion(outputs, targets)
-                loss.backward()
-                optimizer.step()
-
             Util.save_model(model=self.model, output_dir=best_model_path)
 
             logger.info('>>> target: {}'.format(self.target_set))

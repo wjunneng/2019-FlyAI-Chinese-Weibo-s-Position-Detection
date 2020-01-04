@@ -64,9 +64,9 @@ def replacement_order(predict_dir, predict_order_dir, taskaa_dir, predict_order_
         print('different_length: {}'.format(result_different.shape[0]))
 
 
-def calculate_word_count(predict_dir, word_count_dir):
+def calculate_word_count(train_dir):
     topics = ['IphoneSE', '春节放鞭炮', '深圳禁摩限电', '俄罗斯在叙利亚的反恐行动', '开放二胎']
-    with open(predict_dir, 'r') as file_1:
+    with open(train_dir, 'r') as file_1:
         for topic in topics:
             print('topic: {}'.format(topic))
             none_label = None
@@ -74,11 +74,11 @@ def calculate_word_count(predict_dir, word_count_dir):
             against_label = None
 
             for line in file_1.readlines():
-                if line.split(',        ')[1].strip() != topic:
+                if line.split(',        ')[1].strip().lower() != topic.lower():
                     continue
                 label = line.split(',        ')[0].strip().lstrip('[').rstrip(']')
                 count = Counter(list(
-                    jieba.cut(re.sub(r"[^a-zA-Z0-9\u4e00-\u9fa5]", '', line.split(',        ')[3].strip()),
+                    jieba.cut(re.sub(r"[^a-zA-Z0-9\u4e00-\u9fa5]", '', line.split(',        ')[2].strip()),
                               cut_all=False)))
                 if label == 'AGAINST':
                     if against_label is None:
@@ -122,9 +122,12 @@ if __name__ == '__main__':
     predict_dir = 'predict.txt'
     predict_order_dir = 'predict_order.txt'
     predict_order_different_dir = 'predict_order_different.txt'
+
+    train_dir = 'train.txt'
     word_count_dir = 'word_count.csv'
+
 
     # replacement_order(predict_dir=predict_dir, predict_order_dir=predict_order_dir, taskaa_dir=taskaa_dir,
     #                   predict_order_different_dir=predict_order_different_dir)
 
-    calculate_word_count(predict_dir=predict_dir, word_count_dir=word_count_dir)
+    calculate_word_count(train_dir=train_dir)
