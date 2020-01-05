@@ -71,10 +71,16 @@ class Model(Base):
             elif self.args.topics.index(TARGET[0]) == 4:
                 outputs = self.net_4(inputs)
 
+            none, favor, against = outputs.detach().numpy().tolist()[0]
             outputs = torch.argmax(outputs).numpy().tolist()
 
             print(
-                ' [{}],        {},        {},        {}'.format(self.idx2label[outputs], TARGET[0], TEXT[0], TEXT_1[0]))
+                '{},        {},        {},        {},        {},        {},        {}'.format(self.idx2label[outputs],
+                                                                                              round(none, 4),
+                                                                                              round(favor, 4),
+                                                                                              round(against, 4),
+                                                                                              TARGET[0], TEXT[0],
+                                                                                              TEXT_1[0]))
         return outputs
 
     def predict_all(self, datas):

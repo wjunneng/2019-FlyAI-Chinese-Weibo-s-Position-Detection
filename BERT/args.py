@@ -37,7 +37,7 @@ best_model_path = 'data/input'
 # log path
 log_path = 'log'
 # 模型名称
-model_name = 'aen_bert'
+model_name = 'lcf_bert'
 # 优化算法
 optimizer = 'adam'
 # 初始化方式

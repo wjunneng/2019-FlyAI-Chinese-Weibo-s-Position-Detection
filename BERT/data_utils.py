@@ -149,11 +149,21 @@ class ABSADataset(Dataset):
             polarity = STANCE[i]
             text = TEXT[i].strip().lower()
 
+            aspect_indices = self.tokenizer.text_to_sequence(aspect)
+            aspect_len = np.sum(aspect_indices != 0)
+            text_bert_indices = self.tokenizer.text_to_sequence('[CLS] ' + text + ' [SEP] ' + aspect + " [SEP]")
+
+            text_raw_indices = self.tokenizer.text_to_sequence(text)
+            bert_segments_ids = np.asarray([0] * (np.sum(text_raw_indices != 0) + 2) + [1] * (aspect_len + 1))
+            bert_segments_ids = Util.pad_and_truncate(bert_segments_ids, self.tokenizer.max_seq_len)
+
             text_raw_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + text + " [SEP]")
             aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
             polarity = self.label2idx[polarity]
 
             data = {
+                'text_bert_indices': text_bert_indices,
+                'bert_segments_ids': bert_segments_ids,
                 'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
                 'aspect_bert_indices': aspect_bert_indices,  # aen_bert
                 'polarity': polarity,
@@ -170,11 +180,21 @@ class ABSADataset(Dataset):
             aspect = TARGET[i].strip().lower()
             text = TEXT[i].strip().lower()
 
+            aspect_indices = self.tokenizer.text_to_sequence(aspect)
+            aspect_len = np.sum(aspect_indices != 0)
+            text_bert_indices = self.tokenizer.text_to_sequence('[CLS] ' + text + ' [SEP] ' + aspect + " [SEP]")
+
+            text_raw_indices = self.tokenizer.text_to_sequence(text)
+            bert_segments_ids = np.asarray([0] * (np.sum(text_raw_indices != 0) + 2) + [1] * (aspect_len + 1))
+            bert_segments_ids = Util.pad_and_truncate(bert_segments_ids, self.tokenizer.max_seq_len)
+
             text_raw_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + text + " [SEP]")
             aspect_bert_indices = self.tokenizer.text_to_sequence("[CLS] " + aspect + " [SEP]")
 
             if STANCE is None:
                 data = {
+                    'text_bert_indices': text_bert_indices,
+                    'bert_segments_ids': bert_segments_ids,
                     'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
                     'aspect_bert_indices': aspect_bert_indices,  # aen_bert
                 }
@@ -184,6 +204,8 @@ class ABSADataset(Dataset):
                 polarity = self.label2idx[polarity]
 
                 data = {
+                    'text_bert_indices': text_bert_indices,
+                    'bert_segments_ids': bert_segments_ids,
                     'text_raw_bert_indices': text_raw_bert_indices,  # aen_bert
                     'aspect_bert_indices': aspect_bert_indices,  # aen_bert
                     'polarity': polarity,
