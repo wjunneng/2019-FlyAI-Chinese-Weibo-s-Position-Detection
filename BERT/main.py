@@ -6,6 +6,8 @@ import sys
 os.chdir(sys.path[0])
 
 import random
+import pandas as pd
+import copy
 import numpy as np
 import torch
 import logging
@@ -20,7 +22,7 @@ from pytorch_transformers import BertModel
 
 import args as arguments
 from data_utils import ABSADataset, Tokenizer4Bert
-from data_utils import Util, PreProcessing
+from data_utils import Util, PreProcessing, SynonymsReplacer
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -74,12 +76,28 @@ class Instructor(object):
         target = np.asarray([i['TARGET'].lower() for i in target_text])
         text = np.asarray([i['TEXT'].lower() for i in target_text])
         stance = np.asarray([i['STANCE'] for i in stance])
+
+        # ############################# 特征词库的方法 效果不好
+        # train_data = pd.DataFrame(data=[stance, target, text]).T
+        # train_data.columns = ['STANCE', 'TARGET', 'TEXT']
+        # Util.calculate_word_count(train_data)
+        # ############################# 特征词库的方法 效果不好
+
         self.target_set = set()
         for tar in target:
             self.target_set.add(tar)
         text = PreProcessing(text).get_file_text()
-        for stance_one, target_one, text_one in zip(stance, target, text):
-            print(' [{}],        {},        {}'.format(stance_one, target_one, text_one))
+
+        # 同义词替换
+        self.synonyms = SynonymsReplacer()
+        text_add = []
+        for index in range(len(text)):
+            text_add.append(self.synonyms.get_syno_sents_list(text[index]))
+        target = np.append(target, target)
+        text = np.append(text, np.asarray(text_add))
+        stance = np.append(stance, stance)
+
+        print('target.shape: {}, text.shape: {}, stance.shape: {}'.format(target.shape, text.shape, stance.shape))
         trainset = ABSADataset(data_type=None, fname=(target, text, stance), tokenizer=self.tokenizer)
 
         valset_len = int(len(trainset) * self.arguments.valset_ratio)

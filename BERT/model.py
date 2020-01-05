@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*
 import os
+import torch
+import jieba
+import pandas as pd
 from flyai.model.base import Base
 from pytorch_transformers import BertModel
-import torch
 from torch.utils.data import DataLoader, random_split
 
 from data_utils import Util, ABSADataset, Tokenizer4Bert, PreProcessing
@@ -48,6 +50,16 @@ class Model(Base):
         else:
             self.net = Util.load_model(model=model, output_dir=os.path.join(os.getcwd(), args.best_model_path))
 
+        # ############################# 特征词库的方法 效果不好
+        # self.word_count = pd.read_csv(self.args.word_count_dir)
+        # self.word_count_word = list(self.word_count['WORD'])
+        # self.word_count_none = dict(zip(self.word_count_word, list(self.word_count['NONE'] / self.word_count['FREQ'])))
+        # self.word_count_favor = dict(
+        #     zip(self.word_count_word, list(self.word_count['FAVOR'] / self.word_count['FREQ'])))
+        # self.word_count_against = dict(
+        #     zip(self.word_count_word, list(self.word_count['AGAINST'] / self.word_count['FREQ'])))
+        # ############################# 特征词库的方法 效果不好
+
     def predict(self, **data):
         TARGET, TEXT = self.data.predict_data(**data)
         TEXT_1 = PreProcessing(TEXT).get_file_text()
@@ -71,16 +83,36 @@ class Model(Base):
             elif self.args.topics.index(TARGET[0]) == 4:
                 outputs = self.net_4(inputs)
 
-            none, favor, against = outputs.detach().numpy().tolist()[0]
-            outputs = torch.argmax(outputs).numpy().tolist()
+            # ############################# 特征词库的方法 效果不好
+            # WORDS = list(jieba.cut(TEXT_1.tolist()[0], cut_all=False))
+            # none, favor, against = 0, 0, 0
+            # for word in WORDS:
+            #     if word in self.word_count_none:
+            #         none += len(word) * self.word_count_none[word]
+            #     if word in self.word_count_favor:
+            #         favor += len(word) * self.word_count_favor[word]
+            #     if word in self.word_count_against:
+            #         against += len(word) * self.word_count_against[word]
+            #
+            # none = 0.3 * none + 0.7 * outputs.detach().numpy().tolist()[0][0]
+            # favor = 0.3 * favor + 0.7 * outputs.detach().numpy().tolist()[0][1]
+            # against = 0.3 * against + 0.7 * outputs.detach().numpy().tolist()[0][2]
+            #
+            # outputs = [none, favor, against]
+            # outputs = outputs.index(max(outputs))
+            # print(
+            #     '{},        {},        {},        {},        {},        {},        {}'.format(self.idx2label[outputs],
+            #                                                                                   round(none, 4),
+            #                                                                                   round(favor, 4),
+            #                                                                                   round(against, 4),
+            #                                                                                   TARGET[0], TEXT[0],
+            #                                                                                   TEXT_1[0]))
+            # ############################# 特征词库的方法 效果不好
 
-            print(
-                '{},        {},        {},        {},        {},        {},        {}'.format(self.idx2label[outputs],
-                                                                                              round(none, 4),
-                                                                                              round(favor, 4),
-                                                                                              round(against, 4),
-                                                                                              TARGET[0], TEXT[0],
-                                                                                              TEXT_1[0]))
+        outputs = torch.argmax(outputs).numpy().tolist()
+        print(
+            '{},        {},        {},        {}'.format(self.idx2label[outputs], TARGET[0], TEXT[0], TEXT_1[0]))
+
         return outputs
 
     def predict_all(self, datas):

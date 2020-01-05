@@ -79,7 +79,7 @@ def calculate_word_count(train_dir, word_count_dir):
             for line in file_1.readlines():
                 if line.split(',        ')[1].strip().lower() != topic.lower():
                     continue
-                label = line.split(',        ')[0].strip().lstrip('[').rstrip(']')
+                label = line.split(',        ')[0].strip()
                 count = Counter(list(
                     jieba.cut(re.sub(r"[^a-zA-Z0-9\u4e00-\u9fa5]", '', line.split(',        ')[2].strip()),
                               cut_all=False)))
@@ -189,10 +189,10 @@ if __name__ == '__main__':
     word_count_dir = 'word_count.csv'
     predict_order_different_ngram_dir = 'predict_order_different_ngram.csv'
 
+    calculate_word_count(train_dir=train_dir, word_count_dir=word_count_dir)
+
     replacement_order(predict_dir=predict_dir, taskaa_dir=taskaa_dir,
                       predict_order_different_dir=predict_order_different_dir)
-
-    calculate_word_count(train_dir=train_dir, word_count_dir=word_count_dir)
 
     predict_rate(predict_order_different_dir=predict_order_different_dir, word_count_dir=word_count_dir,
                  predict_order_different_ngram_dir=predict_order_different_ngram_dir)

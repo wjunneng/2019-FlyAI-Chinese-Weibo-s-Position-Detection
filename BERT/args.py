@@ -34,6 +34,12 @@ topics = None
 pretrained_bert_name = 'data/input/model'
 # 最优模型保存路径
 best_model_path = 'data/input'
+# word count dir
+word_count_dir = 'data/input/word_count.csv'
+# synomys.json
+synomys_dir = 'data/input/synomys.json'
+# stop words
+stop_words_dir = 'stopwords.txt'
 # log path
 log_path = 'log'
 # 模型名称

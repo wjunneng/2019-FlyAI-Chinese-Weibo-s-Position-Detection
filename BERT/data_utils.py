@@ -6,13 +6,20 @@ os.chdir(sys.path[0])
 
 import re
 import math
+import copy
 import numpy as np
 import torch
 import pickle
+import jieba
+import json
+import shutil
+import random
+from collections import Counter
 import pandas as pd
 from torch.utils.data import Dataset
 from pytorch_transformers import BertTokenizer, BertModel
 from sklearn.metrics import f1_score
+from concurrent.futures import ThreadPoolExecutor
 
 import zh_wiki
 import args
@@ -353,6 +360,74 @@ class Util(object):
 
         return model
 
+    @staticmethod
+    def calculate_word_count(train_data):
+        topics = ['IphoneSE', '春节放鞭炮', '深圳禁摩限电', '俄罗斯在叙利亚的反恐行动', '开放二胎']
+        stance = list(train_data['STANCE'])
+        target = list(train_data['TARGET'])
+        text = list(train_data['TEXT'])
+
+        results = None
+        for topic in topics:
+            print('topic: {}'.format(topic))
+            none_label = None
+            favor_label = None
+            against_label = None
+
+            for index in range(train_data.shape[0]):
+                if target[index].strip().lower() != topic.lower():
+                    continue
+                count = Counter(list(
+                    jieba.cut(re.sub(r"[^a-zA-Z0-9\u4e00-\u9fa5]", '', text[index].strip()), cut_all=False)))
+
+                label = stance[index].strip()
+                if label == 'AGAINST':
+                    if against_label is None:
+                        against_label = copy.deepcopy(count)
+                    else:
+                        against_label.update(count)
+
+                elif label == 'FAVOR':
+                    if favor_label is None:
+                        favor_label = copy.deepcopy(count)
+                    else:
+                        favor_label.update(count)
+
+                else:
+                    if none_label is None:
+                        none_label = copy.deepcopy(count)
+                    else:
+                        none_label.update(count)
+
+            all_label = copy.deepcopy(none_label)
+            all_label.update(favor_label)
+            all_label.update(against_label)
+            all_label_most = all_label.most_common(1000)
+
+            result = pd.DataFrame(data={"WORD": [i for (i, j) in all_label_most]})
+            result["NONE"] = [none_label.get(i) for (i, j) in all_label_most]
+            result["FAVOR"] = [favor_label.get(i) for (i, j) in all_label_most]
+            result["AGAINST"] = [against_label.get(i) for (i, j) in all_label_most]
+            result.fillna(value=0, inplace=True)
+
+            result['FREQ'] = [j for (i, j) in all_label_most]
+            result = result[result['FREQ'] >= 4]
+            result['SUPPORT'] = np.nan_to_num(
+                [max(none, favor, against) / (1.0 * (none + favor + against)) for (none, favor, against) in
+                 zip(result['NONE'], result['FAVOR'], result['AGAINST'])])
+
+            result = result[result['SUPPORT'] >= 0.8]
+            result.sort_values(by='SUPPORT', inplace=True, ascending=False)
+            result['TARGET'] = topic
+
+            if results is None:
+                results = result[['TARGET', 'WORD', 'NONE', 'FAVOR', 'AGAINST', 'FREQ', 'SUPPORT']]
+            else:
+                results = pd.concat(
+                    [results, result[['TARGET', 'WORD', 'NONE', 'FAVOR', 'AGAINST', 'FREQ', 'SUPPORT']]])
+
+        results.to_csv(path_or_buf=os.path.join(os.getcwd(), args.word_count_dir), index=None)
+
 
 class PreProcessing(object):
     def __init__(self, fileText):
@@ -446,3 +521,151 @@ class PreProcessing(object):
 
     def get_file_text(self):
         return np.asarray(self.fileText)
+
+
+class SynonymsReplacer(object):
+    """
+    同义句生成
+    original text : 吸烟的危害是什么
+    result：['吸烟的危害是什么', '吸烟的危害是那些', '吸烟的危害为什么', '吸烟的危害为那些', '吸烟的害处是什么', '吸烟的害处是那些', '吸烟的害处为什么', '吸烟的害处为那些']
+
+    """
+
+    def __init__(self):
+        synonyms_file_path = os.path.join(os.getcwd(), args.synomys_dir)
+        # 移动文件路径
+        shutil.copyfile(os.path.join(os.getcwd(), 'synomys.json'), synonyms_file_path)
+        # self.synonyms = self.load_synonyms(synonyms_file_path)
+        self.synonyms_file_path = synonyms_file_path
+        # self.segmentor = self.segment(cws_model_path)
+        # 每个元素为句子中每个词及其同义词构成的列表
+        self.candidate_synonym_list = {}
+        # 加载停用词表
+        self.stop = [line.strip() for line in
+                     open(os.path.join(os.getcwd(), args.stop_words_dir), encoding='gbk').readlines()]
+
+    def segment(self, sentence):
+        """调用pyltp的分词方法将str类型的句子分词并以list形式返回"""
+        result = [i for i in list(jieba.cut(sentence, cut_all=False)) if i not in self.stop]
+
+        return result
+
+    def load_synonyms(self, file_path):
+        """
+        加载同义词表
+        :param file_path: 同义词表路径
+        :return: 同义词列表[[xx,xx],[xx,xx]...]
+        """
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for line in json.load(file):
+                sign = yield line
+                if sign == 'stop':
+                    break
+
+    def permutation(self, data):
+        """
+        排列函数
+        :param data: 需要进行排列的数据，列表形式
+        :return:
+        """
+        assert len(data) >= 1, "Length of data must greater than 0."
+
+        # 当data中只剩（有）一个词及其同义词的列表时，程序返回
+        if len(data) == 1:
+            return data[0]
+
+        else:
+            head = data[0]
+            # 不断切分到只剩一个词的同义词列表
+            tail = data[1:]
+
+        tail = self.permutation(tail)
+        permt = []
+        # 构建两个词列表的同义词组合
+        for h in head:
+            for t in tail:
+                # 传入的整个data的最后一个元素是一个一维列表，其中每个元素为str
+                if isinstance(t, str):
+                    permt.extend([[h] + [t]])
+                elif isinstance(t, list):
+                    permt.extend([[h] + t])
+        return permt
+
+    def permutation_one(self, data):
+        """
+        排列函数 从list中选择一个元素
+        :param data: 需要进行排列的数据，列表形式
+        :return:
+        """
+        assert len(data) >= 1, "Length of data must greater than 0."
+        random.seed(42)
+
+        result = ""
+        for sample in data:
+            result += random.sample(sample, 1)[0]
+
+        return result
+
+    def search_synonyms(self, word, word_synonyms, index):
+        """
+        根据同义词列表，对每一个word做搜寻匹配
+        :param word:
+        :param word_synonyms:
+        :param index:
+        :return:
+        """
+        synonyms_generation = self.load_synonyms(self.synonyms_file_path)
+        # 遍历同义词表，syn为其中的一条
+        for syn in synonyms_generation:
+            try:
+                # 如果句子中的词在同义词表某一条目中，将该条目中它的同义词添加到该词的同义词列表中
+                if word in syn:
+                    syn.remove(word)
+                    word_synonyms.extend(syn)
+                    synonyms_generation.send('stop')
+            except StopIteration:
+                break
+        return {index: word_synonyms}
+
+    def add_synonyms(self, obj):
+        """
+        # 添加一个词语的同义词列表
+        :param obj:
+        :return:
+        """
+        obj = obj.result()
+        self.candidate_synonym_list.update(obj)
+
+    def get_syno_sents_list(self, input_sentence):
+        """
+        产生同义句，并返回同义句列表，返回的同义句列表没有包含该句本身
+        :param input_sentence: 需要制造同义句的原始句子
+        :return:
+        """
+
+        assert len(input_sentence) > 0, "Length of sentence must greater than 0."
+
+        seged_sentence = self.segment(input_sentence)
+
+        pool = ThreadPoolExecutor(len(seged_sentence))
+        for index, word in enumerate(seged_sentence):
+            word_synonyms = [word]
+            pool.submit(self.search_synonyms, word, word_synonyms, index).add_done_callback(self.add_synonyms)
+        pool.shutdown()
+        d1 = sorted(self.candidate_synonym_list.items(), key=lambda k: k[0])
+        candidate_synonym_list = [k[1] for k in d1]
+
+        # ################# 组合
+        # # 将候选同义词列表们排列组合产生同义句
+        # perm_sent = self.permutation(candidate_synonym_list)
+        #
+        # syno_sent_list = []
+        # for p in perm_sent:
+        #     syno_sent_list.append("".join(p))
+        #
+        # return syno_sent_list
+        # ################# 组合
+
+        perm_sent = self.permutation_one(candidate_synonym_list)
+
+        return perm_sent
