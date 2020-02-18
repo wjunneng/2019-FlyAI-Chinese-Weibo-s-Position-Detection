@@ -19,6 +19,7 @@ from models.lcf_bert import LCF_BERT
 from models.bert_spc import BERT_SPC
 from net import Net
 
+BATCH = 16
 # ############################### model parameters
 dataset = 'evasampledata4'
 data_type = 'csv'
@@ -26,6 +27,8 @@ labels = ['NONE', 'FAVOR', 'AGAINST']
 
 # topics = ['IphoneSE', '春节放鞭炮', '深圳禁摩限电', '俄罗斯在叙利亚的反恐行动', '开放二胎']
 topics = None
+# 是否按照批量预测
+predict_batch = True
 
 # dataset = 'acl-14-short-data'
 # data_type = 'txt'

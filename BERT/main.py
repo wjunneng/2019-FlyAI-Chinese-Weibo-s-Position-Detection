@@ -6,8 +6,6 @@ import sys
 os.chdir(sys.path[0])
 
 import random
-import pandas as pd
-import copy
 import numpy as np
 import torch
 import logging
@@ -22,7 +20,7 @@ from pytorch_transformers import BertModel
 
 import args as arguments
 from data_utils import ABSADataset, Tokenizer4Bert
-from data_utils import Util, PreProcessing, SynonymsReplacer
+from data_utils import Util, PreProcessing, SynonymsReplacer, LabelSmoothingLoss
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -42,7 +40,7 @@ class Instructor(object):
         # 项目的超参
         parser = argparse.ArgumentParser()
         parser.add_argument("-e", "--EPOCHS", default=5, type=int, help="train epochs")
-        parser.add_argument("-b", "--BATCH", default=2, type=int, help="batch size")
+        parser.add_argument("-b", "--BATCH", default=4, type=int, help="batch size")
         self.args = parser.parse_args()
         self.arguments = arguments
         self.dataset = Dataset(epochs=self.args.EPOCHS, batch=self.args.BATCH, val_batch=self.args.BATCH)
@@ -105,7 +103,9 @@ class Instructor(object):
 
     def run(self):
         # loss and optimizer
-        criterion = nn.CrossEntropyLoss()
+        # criterion = nn.CrossEntropyLoss()
+        # 标签平滑
+        criterion = LabelSmoothingLoss(classes=len(self.arguments.labels), smoothing=0.2)
         _params = filter(lambda x: x.requires_grad, self.model.parameters())
         optimizer = self.arguments.optimizer(_params, lr=self.arguments.learning_rate,
                                              weight_decay=self.arguments.l2reg)

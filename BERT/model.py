@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*
 import os
 import torch
+import math
 import jieba
-import pandas as pd
+import numpy as np
 from flyai.model.base import Base
 from pytorch_transformers import BertModel
 from torch.utils.data import DataLoader, random_split
@@ -60,13 +61,11 @@ class Model(Base):
         #     zip(self.word_count_word, list(self.word_count['AGAINST'] / self.word_count['FREQ'])))
         # ############################# 特征词库的方法 效果不好
 
-    def predict(self, **data):
-        TARGET, TEXT = self.data.predict_data(**data)
+    def do_predict(self, TEXT, TARGET):
         TEXT_1 = PreProcessing(TEXT).get_file_text()
         predict_set = ABSADataset(data_type=None, fname=(TARGET.tolist(), TEXT_1.tolist(), None),
                                   tokenizer=self.tokenizer)
-        predict_set, _ = random_split(predict_set, (len(predict_set), 0))
-        predict_loader = DataLoader(dataset=predict_set, batch_size=1, shuffle=True)
+        predict_loader = DataLoader(dataset=predict_set, batch_size=len(TEXT))
         outputs = None
         for i_batch, sample_batched in enumerate(predict_loader):
             inputs = [sample_batched[col].to(self.args.device) for col in self.args.input_colses[self.args.model_name]]
@@ -109,11 +108,14 @@ class Model(Base):
             #                                                                                   TEXT_1[0]))
             # ############################# 特征词库的方法 效果不好
 
-        outputs = torch.argmax(outputs).numpy().tolist()
-        print(
-            '{},        {},        {},        {}'.format(self.idx2label[outputs], TARGET[0], TEXT[0], TEXT_1[0]))
+        outputs = torch.argmax(outputs, dim=-1).numpy().tolist()
 
         return outputs
+
+    def predict(self, **data):
+        TARGET, TEXT = self.data.predict_data(**data)
+
+        return self.do_predict(TARGET=TARGET, TEXT=TEXT)
 
     def predict_all(self, datas):
         """
@@ -122,9 +124,18 @@ class Model(Base):
         :return:
         """
         labels = []
-        for data in datas:
-            predicts = self.predict(TARGET=data['TARGET'], TEXT=data['TEXT'])
 
-            labels.append(predicts)
+        if self.args.predict_batch:
+            for i in range(math.ceil(len(datas) / self.args.BATCH)):
+                batch_x_data = [datas[i] for i in
+                                range(i * self.args.BATCH, min((i + 1) * self.args.BATCH, len(datas)))]
+                TARGET = [i['TARGET'] for i in batch_x_data]
+                TEXT = [i['TEXT'] for i in batch_x_data]
+                labels.extend(self.do_predict(TEXT=np.array(TEXT), TARGET=np.asarray(TARGET)))
+        else:
+            for data in datas:
+                predicts = self.predict(TARGET=data['TARGET'], TEXT=data['TEXT'])
+
+                labels.extend(predicts)
 
         return labels
