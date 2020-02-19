@@ -20,7 +20,7 @@ from pytorch_transformers import BertModel
 
 import args as arguments
 from data_utils import ABSADataset, Tokenizer4Bert
-from data_utils import Util, PreProcessing, SynonymsReplacer, LabelSmoothingLoss
+from data_utils import Util, PreProcessing, SynonymsReplacer, LabelSmoothingLoss, FocalLoss
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -106,7 +106,10 @@ class Instructor(object):
         # loss and optimizer
         # criterion = nn.CrossEntropyLoss()
         # 标签平滑
-        criterion = LabelSmoothingLoss(classes=len(self.arguments.labels), smoothing=0.2)
+        # criterion = LabelSmoothingLoss(classes=len(self.arguments.labels), smoothing=0.2)
+        # Focal Loss
+        criterion = FocalLoss(class_num=len(self.arguments.labels))
+
         _params = filter(lambda x: x.requires_grad, self.model.parameters())
         optimizer = self.arguments.optimizer(_params, lr=self.arguments.learning_rate,
                                              weight_decay=self.arguments.l2reg)
@@ -146,8 +149,8 @@ class Instructor(object):
                     train_loss = loss_total / n_total
                     logger.info('loss: {:.4f}, acc: {:.4f}'.format(train_loss, train_acc))
 
-            val_acc, val_f1 = Util.evaluate_acc_f1(model=self.model, args=self.arguments,
-                                                   data_loader=val_data_loader)
+            self.model.eval()
+            val_acc, val_f1 = Util.evaluate_acc_f1(model=self.model, args=self.arguments, data_loader=val_data_loader)
             logger.info('> val_acc: {:.4f}, val_f1: {:.4f}'.format(val_acc, val_f1))
             if val_acc > max_val_acc:
                 max_val_acc = val_acc
