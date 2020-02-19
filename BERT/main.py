@@ -86,14 +86,15 @@ class Instructor(object):
             self.target_set.add(tar)
         text = PreProcessing(text).get_file_text()
 
-        # 同义词替换
-        self.synonyms = SynonymsReplacer()
-        text_add = []
-        for index in range(len(text)):
-            text_add.append(self.synonyms.get_syno_sents_list(text[index]))
-        target = np.append(target, target)
-        text = np.append(text, np.asarray(text_add))
-        stance = np.append(stance, stance)
+        # ############################# 同义词替换的方法 效果不好
+        # self.synonyms = SynonymsReplacer()
+        # text_add = []
+        # for index in range(len(text)):
+        #     text_add.append(self.synonyms.get_syno_sents_list(text[index]))
+        # target = np.append(target, target)
+        # text = np.append(text, np.asarray(text_add))
+        # stance = np.append(stance, stance)
+        # ############################# 同义词替换的方法 效果不好
 
         print('target.shape: {}, text.shape: {}, stance.shape: {}'.format(target.shape, text.shape, stance.shape))
         trainset = ABSADataset(data_type=None, fname=(target, text, stance), tokenizer=self.tokenizer)
